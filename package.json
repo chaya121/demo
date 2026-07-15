@@ -7,8 +7,8 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",
     "dev:server": "node backend/index.js",
-    "build": "vite build && echo 'No build step'",
-    "start": "cross-env NODE_ENV=production node backend/index.js node index.js",
+    "build": "echo 'No build step'",
+    "start": "node index.js",
     "lint": "eslint .",
     "preview": "npm run build && npm run start"
 
