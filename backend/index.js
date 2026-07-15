@@ -128,10 +128,12 @@ if (isProd && !isVercel) {
   });
 }
 
-await initDb();
-
 if (!isVercel) {
-  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+  initDb().then(() => {
+    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+  });
+} else {
+  initDb();
 }
 
 export default app;

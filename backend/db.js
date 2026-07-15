@@ -28,6 +28,27 @@ const dbPath = path.join(dataDir, 'app.db');
 let db;
 let pgPool;
 
+if (databaseType === 'postgresql' && databaseUrl) {
+  pgPool = new Pool({
+    connectionString: databaseUrl,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 5000 // ให้ timeout เร็วขึ้นถ้าต่อไม่ได้
+  });
+  
+  // สร้างตารางใน background ไม่ต้องรอ (Fire and forget)
+  pgPool.query(`
+    CREATE TABLE IF NOT EXISTS records (
+      id BIGINT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS master (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      data JSONB NOT NULL
+    );
+  `).catch(err => console.error('DB Init Error:', err.message));
+}
+
 function persist() {
   const data = db.export();
   fs.writeFileSync(dbPath, Buffer.from(data));
@@ -35,39 +56,7 @@ function persist() {
 
 export async function initDb() {
   if (databaseType === 'postgresql' && databaseUrl) {
-    // PostgreSQL setup for Supabase
-    try {
-      pgPool = new Pool({
-        connectionString: databaseUrl,
-        ssl: { rejectUnauthorized: false }
-      });
-      
-      // Test connection
-      await pgPool.query('SELECT NOW()');
-      console.log('Connected to PostgreSQL/Supabase');
-      
-      // Create tables if they don't exist
-      await pgPool.query(`
-        CREATE TABLE IF NOT EXISTS records (
-          id BIGINT PRIMARY KEY,
-          data JSONB NOT NULL,
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-      `);
-      
-      await pgPool.query(`
-        CREATE TABLE IF NOT EXISTS master (
-          id INTEGER PRIMARY KEY CHECK (id = 1),
-          data JSONB NOT NULL
-        )
-      `);
-      
-      return pgPool;
-    } catch (err) {
-      console.error('PostgreSQL connection failed, falling back to SQLite:', err.message);
-      console.log('Switching to SQLite database...');
-      // Fall through to SQLite setup
-    }
+    return pgPool;
   }
 
   if (pgPool) {
