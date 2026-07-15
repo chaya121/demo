@@ -519,16 +519,6 @@ export default function FormPage({
           <div className="two-col" style={{ marginBottom: '16px' }}>
             <div>
               <div className="frow">
-                <span className="flabel" style={{ minWidth: '130px', fontSize: '14px' }}>ผู้ดูแล (เมอร์) :</span>
-                <input 
-                  type="text" 
-                  className="finput"
-                  style={{ fontSize: '14px' }}
-                  value={formState.supervisor}
-                  onChange={(e) => handleFieldChange('supervisor', e.target.value)}
-                />
-              </div>
-              <div className="frow">
                 <span className="flabel" style={{ minWidth: '130px', fontSize: '14px' }}>จำนวนคนเย็บ :</span>
                 <input 
                   type="number" 
