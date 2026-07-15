@@ -225,21 +225,56 @@ npm start
 
 ```
 domo_ac/
-├── api/              # Vercel serverless functions
-│   └── index.js      # API handler สำหรับ Vercel
-├── backend/          # Express backend
-│   ├── db.js         # Database layer (Supabase + SQLite)
-│   ├── index.js      # Express server
-│   └── .env          # Backend environment variables
-├── frontend/         # React frontend
-│   ├── src/          # React components
-│   ├── public/       # Static assets
-│   ├── dist/         # Build output
-│   └── .env          # Frontend environment variables
-├── vercel.json       # Vercel configuration
-├── vite.config.js    # Vite configuration
-├── package.json      # Dependencies
-└── .env.example      # Environment variables template
+├── api/                          # Vercel serverless functions
+│   └── index.js                  # API handler สำหรับ Vercel
+├── backend/                      # Express backend
+│   ├── db.js                     # Database layer (Supabase + SQLite)
+│   ├── index.js                  # Express server
+│   └── .env                      # Backend environment variables
+├── frontend/                     # React frontend
+│   ├── dist/                     # Build output (generated)
+│   │   ├── assets/               # Static assets
+│   │   ├── index.html            # Entry HTML
+│   │   └── sw.js                 # Service Worker
+│   ├── public/                   # Public static files
+│   │   ├── favicon.svg           # Favicon
+│   │   ├── icon-192.svg          # PWA icon (192x192)
+│   │   ├── icon-512.svg          # PWA icon (512x512)
+│   │   └── icons.svg             # Icons
+│   ├── src/                      # Source code
+│   │   ├── api/                  # API client
+│   │   │   └── client.js         # Axios client configuration
+│   │   ├── assets/               # Assets
+│   │   │   ├── hero.png          # Hero image
+│   │   │   ├── react.svg         # React logo
+│   │   │   └── vite.svg          # Vite logo
+│   │   ├── components/           # React components
+│   │   │   ├── DownloadPage.jsx  # Download/Export page
+│   │   │   ├── FormPage.jsx      # Form input page
+│   │   │   ├── Header.jsx        # Header component
+│   │   │   ├── MasterPage.jsx    # Master data management
+│   │   │   ├── PreviewModal.jsx  # PDF preview modal
+│   │   │   ├── StatsPage.jsx     # Statistics page
+│   │   │   └── TabBar.jsx        # Tab navigation
+│   │   ├── utils/                # Utility functions
+│   │   │   └── pdfGenerator.js   # PDF generation logic
+│   │   ├── App.css               # App styles
+│   │   ├── App.jsx               # Main App component
+│   │   ├── index.css             # Global styles
+│   │   └── main.jsx              # Entry point
+│   ├── index.html                # HTML template
+│   └── .env                      # Frontend environment variables
+├── database/                     # Local database (SQLite fallback)
+│   └── app.db                    # SQLite database file
+├── node_modules/                 # Dependencies (generated)
+├── .env.example                  # Environment variables template
+├── .gitignore                    # Git ignore rules
+├── .git/                         # Git repository (generated)
+├── package-lock.json             # Dependency lock file
+├── package.json                  # Project dependencies and scripts
+├── README.md                     # Project documentation
+├── vercel.json                   # Vercel deployment configuration
+└── vite.config.js                # Vite build configuration
 ```
 
 ## 🔌 API Endpoints
