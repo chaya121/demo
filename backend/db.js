@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
