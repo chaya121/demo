@@ -9,8 +9,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '../database');
 const databaseType = process.env.DATABASE_TYPE || 'sqlite';
 const databaseUrl = process.env.DATABASE_URL;
+const isVercel = process.env.VERCEL === '1';
 
-if (!fs.existsSync(dataDir)) {
+// Prevent SQLite usage on Vercel (serverless environment)
+if (isVercel && databaseType !== 'postgresql') {
+  throw new Error('SQLite is not supported on Vercel serverless. Please set DATABASE_TYPE=postgresql and provide DATABASE_URL for Supabase.');
+}
+
+if (isVercel && !databaseUrl) {
+  throw new Error('DATABASE_URL is required on Vercel. Please provide your Supabase connection string.');
+}
+
+if (!isVercel && !fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 

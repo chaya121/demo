@@ -55,6 +55,21 @@ cp .env.example .env
 - `records` - เก็บข้อมูลรายการผลิต
 - `master` - เก็บข้อมูลหลัก (master data)
 
+### ⚠️ ข้อควรระวังเรื่อง Database
+
+**SQLite เฉพาะ Local Development เท่านั้น!**
+- SQLite ใช้สำหรับการพัฒนาในเครื่อง (Local Development) เท่านั้น
+- **ห้ามใช้ SQLite บน Vercel Serverless** เด็ดขาด เพราะ:
+  - Vercel Serverless เป็นแบบ Stateless และ Read-only
+  - ข้อมูล SQLite จะสูญหายทันทีเมื่อ Serverless Instance ถูกปิด
+  - ไม่มีการ persist ข้อมูลระหว่าง requests
+
+**สำหรับ Production (Vercel):**
+- ต้องใช้ Supabase (PostgreSQL) เท่านั้น
+- ตั้งค่า `DATABASE_TYPE=postgresql`
+- ตั้งค่า `DATABASE_URL` ให้ถูกต้อง
+- ระบบจะตรวจสอบและป้องกันการใช้ SQLite บน Vercel อัตโนมัติ
+
 ## � โครงสร้าง Database (Database Schema)
 
 ### Table: records
