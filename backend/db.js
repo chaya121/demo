@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
@@ -57,7 +58,7 @@ export async function initDb() {
       
       await pgPool.query(`
         CREATE TABLE IF NOT EXISTS master (
-          id INTEGER PRIMARY CHECK (id = 1),
+          id INTEGER PRIMARY KEY CHECK (id = 1),
           data JSONB NOT NULL
         )
       `);
