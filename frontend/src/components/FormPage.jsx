@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { compressImage } from '../utils/imageUtils';
 export default function FormPage({
   formState,
   setFormState,
@@ -61,18 +61,24 @@ export default function FormPage({
   };
 
   // ── Images ──
-  const handleImagesUpload = (e) => {
+  const handleImagesUpload = async (e) => {
     const files = [...e.target.files];
-    files.forEach(f => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setFormState(prev => ({
-          ...prev,
-          imgs: [...prev.imgs, event.target.result]
-        }));
-      };
-      reader.readAsDataURL(f);
-    });
+    const compressedImages = [];
+    
+    for (const f of files) {
+      try {
+        const compressed = await compressImage(f, 800, 0.7);
+        compressedImages.push(compressed);
+      } catch (err) {
+        console.error("Error compressing image:", err);
+      }
+    }
+
+    setFormState(prev => ({
+      ...prev,
+      imgs: [...prev.imgs, ...compressedImages]
+    }));
+    
     e.target.value = '';
   };
 
