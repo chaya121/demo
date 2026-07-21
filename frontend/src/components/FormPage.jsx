@@ -618,6 +618,7 @@ export default function FormPage({
                         className="step-tbl-input" 
                         type="number" 
                         min="0" 
+                        step="0.01"
                         style={{ fontSize: '14px' }}
                         value={r.time || ''} 
                         onChange={(e) => updateStepField(i, 'time', e.target.value)}
