@@ -627,22 +627,22 @@ export default function FormPage({
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                         <button 
                           type="button" 
-                          onClick={() => updateStepField(i, 'workers', Math.max(0.5, (parseFloat(r.workers) || 1) - 0.5))}
+                          onClick={() => updateStepField(i, 'workers', Math.max(0, (parseFloat(r.workers) || 0) - 0.5))}
                           style={{ padding: '2px 8px', fontSize: '16px', background: '#e2e8f0', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', touchAction: 'manipulation' }}
                         >-</button>
                         <input 
                           className="step-tbl-input" 
                           type="number" 
-                          min="0.5" 
+                          min="0" 
                           step="0.5"
                           placeholder="0.5"
                           style={{ fontSize: '14px', width: '45px', textAlign: 'center', padding: '4px' }}
-                          value={r.workers || 1} 
+                          value={r.workers !== undefined ? r.workers : 1} 
                           onChange={(e) => updateStepField(i, 'workers', e.target.value)}
                         />
                         <button 
                           type="button" 
-                          onClick={() => updateStepField(i, 'workers', (parseFloat(r.workers) || 1) + 0.5)}
+                          onClick={() => updateStepField(i, 'workers', (parseFloat(r.workers) || 0) + 0.5)}
                           style={{ padding: '2px 8px', fontSize: '16px', background: '#e2e8f0', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', touchAction: 'manipulation' }}
                         >+</button>
                       </div>
