@@ -75,7 +75,10 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm }) {
           <div className="pv-page">
             <div className="pv-page-hdr">
               <div className="pv-logo">Apparel<br />Creations</div>
-              <div className="pv-page-title">ใบดีขั้นตอนผลิต</div>
+              <div className="pv-page-title">
+                ใบดีขั้นตอนผลิต
+                {data.job_no && <div style={{ fontSize: '14px', marginTop: '4px', color: '#555' }}>เลขที่: {data.job_no}</div>}
+              </div>
               <div className="pv-page-num">หน้า 1/2</div>
             </div>
             <div className="pv-page-body">
@@ -202,7 +205,10 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm }) {
           <div className="pv-page">
             <div className="pv-page-hdr">
               <div className="pv-logo">Apparel<br />Creations</div>
-              <div className="pv-page-title">ขั้นตอนการเย็บ</div>
+              <div className="pv-page-title">
+                ใบดีขั้นตอนผลิต
+                {data.job_no && <div style={{ fontSize: '14px', marginTop: '4px', color: '#555' }}>เลขที่: {data.job_no}</div>}
+              </div>
               <div className="pv-page-num">หน้า 2/2</div>
             </div>
             <div className="pv-page-body">

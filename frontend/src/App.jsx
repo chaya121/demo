@@ -209,7 +209,7 @@ export default function App() {
         const saved = await api.updateRecord(editingId, updatedRecord);
         setRecords(prev => prev.map(r => r.id === editingId ? saved : r));
         setEditingId(null);
-        showToast('แก้ไขข้อมูลสำเร็จ');
+        showToast(`แก้ไขข้อมูลสำเร็จ: ${saved.job_no || ''}`);
       } else {
         // Create new record
         const newRecord = {
@@ -218,7 +218,7 @@ export default function App() {
         };
         const saved = await api.createRecord(newRecord);
         setRecords(prev => [saved, ...prev]);
-        showToast('บันทึกสำเร็จ');
+        showToast(`บันทึกสำเร็จ: เลขที่ ${saved.job_no || ''}`);
       }
       setIsPreviewOpen(false);
       setFormState(createEmptyFormState());

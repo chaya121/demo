@@ -309,7 +309,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
           {filteredRecords.map((r, i) => {
             const steps = r.steps || [];
             const totalSteps = steps.length;
-            const title = r.model || r.brand || r.customer || '(ไม่ระบุ)';
+            const title = (r.job_no ? `[${r.job_no}] ` : '') + (r.model || r.brand || r.customer || '(ไม่ระบุ)');
             const dateStr = r.dispDate || 'ไม่ระบุวันที่';
             const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
 

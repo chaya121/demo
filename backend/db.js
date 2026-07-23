@@ -115,9 +115,50 @@ export async function getAllRecords() {
   }
 }
 
+function getMerCode(merText) {
+  if (!merText) return 'X';
+  if (merText.includes('เหลง')) return 'L';
+  if (merText.includes('จูน')) return 'J';
+  if (merText.includes('ยุ้ย')) return 'Y';
+  return 'X';
+}
+
+function generateJobNumber(record, allRecords) {
+  if (record.job_no) return record.job_no;
+
+  const dateObj = record.date ? new Date(record.date) : new Date();
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(dateObj.getFullYear());
+  
+  const merCode = getMerCode(record.merText);
+
+  let maxRun = 0;
+  for (const r of allRecords) {
+    if (r.job_no && r.job_no.length >= 12) { // DDMMYYYYmerXXX (at least 12 chars usually)
+      const rYear = r.job_no.substring(4, 8);
+      if (rYear === yyyy) {
+        // Find the number part at the end
+        const match = r.job_no.match(/\d+$/);
+        if (match) {
+          const runNum = parseInt(match[0], 10);
+          if (runNum > maxRun) {
+            maxRun = runNum;
+          }
+        }
+      }
+    }
+  }
+
+  const nextRun = String(maxRun + 1).padStart(3, '0');
+  return `${dd}${mm}${yyyy}${merCode}${nextRun}`;
+}
+
 export async function createRecord(record) {
-  const id = record.id || Date.now();
-  const data = { ...record, id };
+  const allRecords = await getAllRecords();
+  const job_no = generateJobNumber(record, allRecords);
+  
+  const data = { ...record, id, job_no };
   
   if (databaseType === 'postgresql' && pgPool) {
     await pgPool.query(
@@ -138,9 +179,17 @@ export async function bulkCreateRecords(records) {
     const client = await pgPool.connect();
     try {
       await client.query('BEGIN');
+      const allRecords = await getAllRecords();
+      let currentRecords = [...allRecords];
+      
       for (const record of records) {
         const id = record.id || Date.now();
-        const data = { ...record, id };
+        const job_no = generateJobNumber(record, currentRecords);
+        const data = { ...record, id, job_no };
+        
+        // Add to currentRecords so next records in bulk get incremented number
+        currentRecords.push(data);
+        
         await client.query(
           'INSERT INTO records (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = $2',
           [id, data]
@@ -155,10 +204,18 @@ export async function bulkCreateRecords(records) {
     }
     return getAllRecords();
   } else {
+    const allRecords = await getAllRecords();
+    let currentRecords = [...allRecords];
+    
     for (const record of records) {
       const id = record.id || Date.now();
-      const data = JSON.stringify({ ...record, id });
-      db.run('INSERT OR REPLACE INTO records (id, data) VALUES (?, ?)', [id, data]);
+      const job_no = generateJobNumber(record, currentRecords);
+      const data = { ...record, id, job_no };
+      
+      currentRecords.push(data);
+      
+      const jsonData = JSON.stringify(data);
+      db.run('INSERT OR REPLACE INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
     }
     persist();
     return getAllRecords();
