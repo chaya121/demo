@@ -5,7 +5,7 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
   const categories = [
     { type: 'mers', label: 'Mer', icon: '🎨', placeholder: 'เพิ่ม Mer ใหม่...' },
     { type: 'brands', label: 'แบรนด์ (Brand)', icon: '🏷️', placeholder: 'เพิ่มแบรนด์ใหม่...' },
-    { type: 'types', label: 'ประเภท (Type)', icon: '📁', placeholder: 'เพิ่มประเภทใหม่...' },
+    { type: 'clothingTypes', label: 'ประเภทเสื้อผ้า (Clothing Type)', icon: '👕', placeholder: 'เพิ่มประเภทเสื้อผ้าใหม่...' },
     { type: 'parts', label: 'ชิ้นส่วน (Parts)', icon: '🧩', placeholder: 'เพิ่มชิ้นส่วนใหม่...' },
     { type: 'steps', label: 'ขั้นตอนการเย็บ (Sewing Operations)', icon: '🧵', placeholder: 'เพิ่มขั้นตอนใหม่...' },
     { type: 'machines', label: 'เครื่องจักร (Machines)', icon: '🔧', placeholder: 'เพิ่มเครื่องจักรใหม่...' },
@@ -37,11 +37,11 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
         const partKey = keys.find(k => ['ชิ้นส่วน', 'part', 'parts'].includes(k.toLowerCase().trim()));
         const merKey = keys.find(k => ['mer', 'mers', 'merchandiser', 'ผู้ประสานงาน'].includes(k.toLowerCase().trim()));
         const brandKey = keys.find(k => ['แบรนด์', 'brand', 'brands'].includes(k.toLowerCase().trim()));
-        const typeKey = keys.find(k => ['ประเภท', 'type', 'types'].includes(k.toLowerCase().trim()));
+        const clothingTypeKey = keys.find(k => ['ประเภท', 'ประเภทเสื้อผ้า', 'clothing', 'type'].includes(k.toLowerCase().trim()));
 
         const importedMers = [];
         const importedBrands = [];
-        const importedTypes = [];
+        const importedClothingTypes = [];
         const importedParts = [];
         const importedSteps = [];
         const importedMachines = [];
@@ -55,9 +55,9 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
             const v = String(row[brandKey]).trim();
             if (v && !importedBrands.includes(v)) importedBrands.push(v);
           }
-          if (typeKey && row[typeKey]) {
-            const v = String(row[typeKey]).trim();
-            if (v && !importedTypes.includes(v)) importedTypes.push(v);
+          if (clothingTypeKey && row[clothingTypeKey]) {
+            const v = String(row[clothingTypeKey]).trim();
+            if (v && !importedClothingTypes.includes(v)) importedClothingTypes.push(v);
           }
           if (partKey && row[partKey]) {
             const v = String(row[partKey]).trim();
@@ -84,10 +84,10 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
           onUpdateMaster('brands', updated);
           summary.push(`แบรนด์ +${importedBrands.length}`);
         }
-        if (importedTypes.length) {
-          const updated = [...new Set([...(masterLists.types || []), ...importedTypes])];
-          onUpdateMaster('types', updated);
-          summary.push(`ประเภท +${importedTypes.length}`);
+        if (importedClothingTypes.length) {
+          const updated = [...new Set([...(masterLists.clothingTypes || []), ...importedClothingTypes])];
+          onUpdateMaster('clothingTypes', updated);
+          summary.push(`ประเภทเสื้อผ้า +${importedClothingTypes.length}`);
         }
         if (importedParts.length) {
           const updated = [...new Set([...(masterLists.parts || []), ...importedParts])];
