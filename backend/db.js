@@ -155,6 +155,7 @@ function generateJobNumber(record, allRecords) {
 }
 
 export async function createRecord(record) {
+  const id = record.id || Date.now();
   const allRecords = await getAllRecords();
   const job_no = generateJobNumber(record, allRecords);
   
