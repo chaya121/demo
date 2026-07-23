@@ -108,7 +108,7 @@ export default function FormPage({
     setFormState(prev => {
       const newSteps = [...prev.steps];
       if (field === 'time') {
-        newSteps[idx][field] = parseInt(val) || 0;
+        newSteps[idx][field] = val === '' ? '' : parseFloat(val) || 0;
       } else if (field === 'workers') {
         newSteps[idx][field] = parseFloat(val) || 1;
       } else {
