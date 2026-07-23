@@ -270,6 +270,7 @@ export default function App() {
       merText: r.merText || (r.mer && r.mer[0]) || '',
       clothingType: r.clothingType || '',
       job_no: r.job_no || '',
+      shipDate: r.shipDate || '',
       brand: r.brand || '',
       customer: r.customer || '',
       model: r.model || '',

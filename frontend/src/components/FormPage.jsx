@@ -296,6 +296,19 @@ export default function FormPage({
             </div>
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div className="frow">
+              <span className="flabel" style={{ minWidth: '130px', fontSize: '14px' }}>วันที่ Shipment :</span>
+              <input
+                type="date"
+                className="finput"
+                style={{ maxWidth: '160px', fontSize: '14px' }}
+                value={formState.shipDate || ''}
+                onChange={(e) => handleFieldChange('shipDate', e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="sec-label" style={{ fontSize: '16px', marginBottom: '12px' }}>📦 ข้อมูลการผลิต</div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>

@@ -6,6 +6,8 @@ import { api } from '../api/client';
 export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   const [filterCustomer, setFilterCustomer] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
 
   const uniqueCustomers = useMemo(() => {
     const customers = [...new Set(records.map(r => r.customer).filter(Boolean))];
@@ -27,12 +29,24 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   };
 
   const filteredRecords = useMemo(() => {
-    return records.filter(r => {
-      const matchCustomer = !filterCustomer || r.customer === filterCustomer;
-      const matchBrand = !filterBrand || r.brand === filterBrand;
-      return matchCustomer && matchBrand;
-    });
-  }, [records, filterCustomer, filterBrand]);
+    return records
+      .filter(r => {
+        const matchCustomer = !filterCustomer || r.customer === filterCustomer;
+        const matchBrand = !filterBrand || r.brand === filterBrand;
+        const shipDate = r.shipDate || '';
+        const matchFrom = !filterDateFrom || shipDate >= filterDateFrom;
+        const matchTo = !filterDateTo || shipDate <= filterDateTo;
+        return matchCustomer && matchBrand && matchFrom && matchTo;
+      })
+      .sort((a, b) => {
+        const da = a.shipDate || '';
+        const db = b.shipDate || '';
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da < db ? -1 : da > db ? 1 : 0;
+      });
+  }, [records, filterCustomer, filterBrand, filterDateFrom, filterDateTo]);
   const handlePdfDownload = (record) => {
     generatePDF(
       record,
@@ -268,6 +282,35 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
             </select>
           </div>
         </div>
+
+        {/* Shipment Date Filter */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+          <span style={{ fontSize: '14px', color: 'var(--muted)' }}>🚢 กรองช่วง Shipment:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '13px', color: 'var(--muted)' }}>จาก</span>
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '13px' }}
+            />
+            <span style={{ fontSize: '13px', color: 'var(--muted)' }}>ถึง</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '13px' }}
+            />
+            {(filterDateFrom || filterDateTo) && (
+              <button
+                onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); }}
+                style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid #e0e0e0', background: '#f5f5f5', fontSize: '13px', cursor: 'pointer' }}
+              >
+                ✕ ล้าง
+              </button>
+            )}
+          </div>
+        </div>
         
         <div style={{ fontSize: '14px', color: 'var(--primary)', marginTop: '10px', fontWeight: '600' }}>
           แสดง {filteredRecords.length} รายการ (จากทั้งหมด {records.length} รายการ)
@@ -324,6 +367,11 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
                     </div>
                     <div className="rec-sub" style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       {dateStr} · เมอร์: {merStr} · จำนวน: {r.qty || 0} · สี: {r.colors || 0}
+                      {r.shipDate && (
+                        <span style={{ color: '#2980b9', fontWeight: '600', marginLeft: '6px' }}>
+                          · 🚢 Ship: {new Date(r.shipDate + 'T00:00:00').toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="rec-badge">
