@@ -356,8 +356,16 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
             const dateStr = r.dispDate || 'ไม่ระบุวันที่';
             const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
 
+            const estWageNum = parseFloat(r.estWage);
+            const actualTotalNum = parseFloat(r.actual?.total);
+            const isOverbudget = !isNaN(estWageNum) && !isNaN(actualTotalNum) && actualTotalNum > estWageNum;
+
             return (
-              <div className="rec-card" key={r.id || i}>
+              <div 
+                className="rec-card" 
+                key={r.id || i}
+                style={isOverbudget ? { backgroundColor: '#FFBCBC', borderColor: '#ff9999' } : {}}
+              >
                 <div className="rec-hdr">
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="rec-title">{title}</div>
