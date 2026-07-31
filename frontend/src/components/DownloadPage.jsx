@@ -357,8 +357,8 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
             const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
 
             const estWageNum = parseFloat(r.estWage);
-            const actualTotalNum = parseFloat(r.actual?.total);
-            const isOverbudget = !isNaN(estWageNum) && !isNaN(actualTotalNum) && actualTotalNum > estWageNum;
+            const actualWageNum = parseFloat(r.actual?.wage);
+            const isOverbudget = !isNaN(estWageNum) && !isNaN(actualWageNum) && actualWageNum > estWageNum;
 
             return (
               <div 
@@ -371,7 +371,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
                     <div className="rec-title">{title}</div>
                     <div className="rec-sub">
                       ลูกค้า: {r.customer || '-'} · แบรนด์: {r.brand || '-'}<br />
-                      ราคาประมาณ: {r.estWage ? `${r.estWage.toLocaleString()} บาท` : '-'} · ราคาจริง: {r.actual?.total ? `${r.actual.total.toLocaleString()} บาท` : '-'}
+                      ราคาประมาณ: {r.estWage ? `${parseFloat(r.estWage).toLocaleString()} บาท` : '-'} · ราคาจริง: {r.actual?.wage ? `${parseFloat(r.actual.wage).toLocaleString()} บาท` : '-'}
                     </div>
                     <div className="rec-sub" style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       {dateStr} · เมอร์: {merStr} · จำนวน: {r.qty || 0} · สี: {r.colors || 0}
