@@ -110,7 +110,7 @@ export default function FormPage({
       if (field === 'time') {
         newSteps[idx][field] = val === '' ? '' : parseFloat(val) || 0;
       } else if (field === 'workers') {
-        newSteps[idx][field] = parseFloat(val) || 1;
+        newSteps[idx][field] = val === '' ? '' : parseFloat(val) || 0;
       } else {
         newSteps[idx][field] = val;
       }
