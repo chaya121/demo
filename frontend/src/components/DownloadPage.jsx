@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { generatePDF } from '../utils/pdfGenerator';
 import { utils, writeFile, read } from 'xlsx';
 import { api } from '../api/client';
+import SearchableSelect from './SearchableSelect';
 
 function formatDispDate(dateStr) {
   if (!dateStr) return '';
@@ -263,30 +264,28 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
         <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '14px', color: 'var(--muted)' }}>กรองลูกค้า:</span>
-            <select
+            <SearchableSelect
+              className="ssel-filter"
+              allowCustom={false}
+              clearLabel="ทั้งหมด"
+              options={uniqueCustomers}
               value={filterCustomer}
-              onChange={(e) => handleCustomerChange(e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}
-            >
-              <option value="">ทั้งหมด</option>
-              {uniqueCustomers.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+              placeholder="ทั้งหมด"
+              onChange={handleCustomerChange}
+            />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '14px', color: 'var(--muted)' }}>กรองแบรนด์:</span>
-            <select
-              value={filterBrand}
-              onChange={(e) => setFilterBrand(e.target.value)}
+            <SearchableSelect
+              className="ssel-filter"
+              allowCustom={false}
+              clearLabel="ทั้งหมด"
               disabled={!filterCustomer}
-              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px', opacity: filterCustomer ? 1 : 0.5 }}
-            >
-              <option value="">ทั้งหมด</option>
-              {uniqueBrands.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+              options={uniqueBrands}
+              value={filterBrand}
+              placeholder="ทั้งหมด"
+              onChange={setFilterBrand}
+            />
           </div>
         </div>
 

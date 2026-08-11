@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import SearchableSelect from './SearchableSelect';
 
 export default function StatsPage({ records }) {
   const [filterCustomer, setFilterCustomer] = useState('');
@@ -37,13 +38,13 @@ export default function StatsPage({ records }) {
     }
   }, [records, filterCustomer]);
 
-  const handleCustomerChange = (e) => {
-    setFilterCustomer(e.target.value);
+  const handleCustomerChange = (value) => {
+    setFilterCustomer(value);
     setFilterBrand('');
   };
 
-  const handleMerChange = (e) => {
-    setFilterMer(e.target.value);
+  const handleMerChange = (value) => {
+    setFilterMer(value);
   };
 
   const stats = useMemo(() => {
@@ -124,46 +125,40 @@ export default function StatsPage({ records }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '12px' }}>
           <div>
             <label style={{ fontSize: '15px', color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>ลูกค้า</label>
-            <select
-              className="form-input"
+            <SearchableSelect
+              className="ssel-filter-lg"
+              allowCustom={false}
+              clearLabel="ทั้งหมด"
+              options={uniqueCustomers}
               value={filterCustomer}
+              placeholder="ทั้งหมด"
               onChange={handleCustomerChange}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '15px' }}
-            >
-              <option value="">ทั้งหมด</option>
-              {uniqueCustomers.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            />
           </div>
           <div>
             <label style={{ fontSize: '15px', color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>แบรนด์</label>
-            <select
-              className="form-input"
-              value={filterBrand}
-              onChange={(e) => setFilterBrand(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '15px' }}
+            <SearchableSelect
+              className="ssel-filter-lg"
+              allowCustom={false}
+              clearLabel="ทั้งหมด"
               disabled={!filterCustomer}
-            >
-              <option value="">ทั้งหมด</option>
-              {availableBrands.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+              options={availableBrands}
+              value={filterBrand}
+              placeholder="ทั้งหมด"
+              onChange={setFilterBrand}
+            />
           </div>
           <div>
             <label style={{ fontSize: '15px', color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>Mer</label>
-            <select
-              className="form-input"
+            <SearchableSelect
+              className="ssel-filter-lg"
+              allowCustom={false}
+              clearLabel="ทั้งหมด"
+              options={uniqueMers}
               value={filterMer}
+              placeholder="ทั้งหมด"
               onChange={handleMerChange}
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '15px' }}
-            >
-              <option value="">ทั้งหมด</option>
-              {uniqueMers.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+            />
           </div>
         </div>
         {(filterCustomer || filterBrand || filterMer) && (

@@ -10,7 +10,17 @@ export function sortThaiFirst(arr) {
 
 // Combobox: type to filter an existing list, or type a value that isn't
 // in the list yet to add it (caller decides what "new" means via onChange).
-export default function SearchableSelect({ value, options = [], onChange, placeholder = '-- เลือก --', className = '', style }) {
+export default function SearchableSelect({
+  value,
+  options = [],
+  onChange,
+  placeholder = '-- เลือก --',
+  className = '',
+  style,
+  disabled = false,
+  allowCustom = true,
+  clearLabel = '✕ ล้างค่า',
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
@@ -32,7 +42,7 @@ export default function SearchableSelect({ value, options = [], onChange, placeh
 
   const trimmedQuery = query.trim();
   const exactMatch = filtered.some(o => o.toLowerCase() === trimmedQuery.toLowerCase());
-  const showAddNew = trimmedQuery.length > 0 && !exactMatch;
+  const showAddNew = allowCustom && trimmedQuery.length > 0 && !exactMatch;
 
   const positionMenu = () => {
     const el = wrapRef.current;
@@ -54,6 +64,7 @@ export default function SearchableSelect({ value, options = [], onChange, placeh
   };
 
   const openDropdown = () => {
+    if (disabled) return;
     clearTimeout(closeTimer.current);
     setQuery('');
     setHighlight(0);
@@ -121,6 +132,7 @@ export default function SearchableSelect({ value, options = [], onChange, placeh
         type="text"
         value={isOpen ? query : (value || '')}
         placeholder={placeholder}
+        disabled={disabled}
         onFocus={openDropdown}
         onClick={() => { if (!isOpen) openDropdown(); }}
         onChange={(e) => { setQuery(e.target.value); setHighlight(0); if (!isOpen) setIsOpen(true); }}
@@ -130,7 +142,7 @@ export default function SearchableSelect({ value, options = [], onChange, placeh
       {isOpen && menuStyle && createPortal(
         <div className="ssel-menu" style={menuStyle} ref={menuRef} onMouseDown={(e) => e.preventDefault()}>
           {value && (
-            <div className="ssel-opt ssel-clear" onClick={() => commit('')}>✕ ล้างค่า</div>
+            <div className="ssel-opt ssel-clear" onClick={() => commit('')}>{clearLabel}</div>
           )}
           {filtered.map((o, i) => (
             <div
