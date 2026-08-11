@@ -167,6 +167,7 @@ export default function App() {
   };
 
   const handleClearForm = () => {
+    if (!window.confirm('ต้องการล้างฟอร์มหรือไม่? ข้อมูลที่กรอกไว้จะหายทั้งหมด')) return;
     setFormState(createEmptyFormState());
     setEditingId(null);
     showToast('ล้างฟอร์มแล้ว');
