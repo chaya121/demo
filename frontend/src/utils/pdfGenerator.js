@@ -31,8 +31,9 @@ export function generatePDF(record, onStart, onSuccess, onError) {
     };
 
     const secToMin = (s) => {
-      const m = Math.floor(s / 60);
-      const sec = s % 60;
+      const total = Math.round(s);
+      const m = Math.floor(total / 60);
+      const sec = total % 60;
       return `${m}.${String(sec).padStart(2, '0')}`;
     };
 
@@ -46,7 +47,7 @@ export function generatePDF(record, onStart, onSuccess, onError) {
     };
 
     const steps = record.steps || [];
-    const totalSec = steps.reduce((s, r) => s + (parseInt(r.time) || 0), 0);
+    const totalSec = steps.reduce((s, r) => s + (parseFloat(r.time) || 0), 0);
     const breakdown = getMachineBreakdown(steps);
 
     const extraFeatures = [

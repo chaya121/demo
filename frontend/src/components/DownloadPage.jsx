@@ -3,6 +3,13 @@ import { generatePDF } from '../utils/pdfGenerator';
 import { utils, writeFile, read } from 'xlsx';
 import { api } from '../api/client';
 
+function formatDispDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
 export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   const [filterCustomer, setFilterCustomer] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -71,7 +78,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
     try {
       const summaryData = records.map((r, idx) => {
         const steps = r.steps || [];
-        const totalSec = steps.reduce((s, row) => s + (parseInt(row.time) || 0), 0);
+        const totalSec = steps.reduce((s, row) => s + (parseFloat(row.time) || 0), 0);
         const totalMin = (totalSec / 60).toFixed(2);
         
         return {
@@ -353,7 +360,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
             const steps = r.steps || [];
             const totalSteps = steps.length;
             const title = (r.job_no ? `[${r.job_no}] ` : '') + (r.model || r.brand || r.customer || '(ไม่ระบุ)');
-            const dateStr = r.dispDate || 'ไม่ระบุวันที่';
+            const dateStr = r.dispDate || formatDispDate(r.date) || 'ไม่ระบุวันที่';
             const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
 
             const estWageNum = parseFloat(r.estWage);

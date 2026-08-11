@@ -1,5 +1,6 @@
 import React from 'react';
 import { compressImage } from '../utils/imageUtils';
+import SearchableSelect from './SearchableSelect';
 export default function FormPage({
   formState,
   setFormState,
@@ -8,13 +9,6 @@ export default function FormPage({
   onClear,
   onPreview
 }) {
-
-  const sortThaiFirst = (arr) => {
-    const isThai = s => /^[\u0E00-\u0E7F]/.test(s || '');
-    const thai = arr.filter(isThai).sort((a, b) => a.localeCompare(b, 'th'));
-    const eng  = arr.filter(s => !isThai(s)).sort((a, b) => a.localeCompare(b, 'en'));
-    return [...thai, ...eng];
-  };
 
   const handleFieldChange = (field, val) => {
     setFormState(prev => ({
@@ -118,18 +112,17 @@ export default function FormPage({
     });
   };
 
-  const handleSelectChange = (idx, field, val, isCustom, masterType) => {
-    if (isCustom) {
-      updateStepField(idx, field, val);
+  const handleStepSelectChange = (idx, field, val, list, masterType) => {
+    updateStepField(idx, field, val);
+    if (val && !list.includes(val)) {
       onAddMasterItem(masterType, val);
-    } else {
-      updateStepField(idx, field, val);
     }
   };
 
   const secToMin = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
+    const total = Math.round(s);
+    const m = Math.floor(total / 60);
+    const sec = total % 60;
     return `${m}.${String(sec).padStart(2, '0')}`;
   };
 
@@ -150,53 +143,25 @@ export default function FormPage({
     return rows.reduce((total, r) => total + (r.machine ? 1 : 0), 0);
   };
 
-  const totalSec = formState.steps.reduce((s, r) => s + (parseInt(r.time) || 0), 0);
+  const totalSec = formState.steps.reduce((s, r) => s + (parseFloat(r.time) || 0), 0);
   const totalWorkers = getTotalWorkers(formState.steps);
   const machineBreakdown = getMachineBreakdown(formState.steps);
   const totalMachines = getTotalMachines(formState.steps);
 
-  const sortedMers = sortThaiFirst(masterLists.mers || []);
-  const sortedBrands = sortThaiFirst(masterLists.brands || []);
-  const sortedClothingTypes = sortThaiFirst(masterLists.clothingTypes || []);
-
-  const handleDropdownChange = (field, value, masterType) => {
-    if (value === '__custom__') {
-      const custom = prompt('พิมพ์ค่าที่ต้องการ:');
-      if (custom && custom.trim()) {
-        handleFieldChange(field, custom.trim());
-        onAddMasterItem(masterType, custom.trim());
-      }
-    } else {
-      handleFieldChange(field, value);
+  const handleDropdownChange = (field, val, masterType) => {
+    handleFieldChange(field, val);
+    if (val && !(masterLists[masterType] || []).includes(val)) {
+      onAddMasterItem(masterType, val);
     }
   };
 
-  const makeSelectElement = (list, value, idx, field, masterType) => {
-    const base = list.includes(value) ? list : (value ? [value, ...list] : list);
-    const sorted = sortThaiFirst(base);
-    return (
-      <select
-        className="step-tbl-select"
-        value={value}
-        onChange={(e) => {
-          if (e.target.value === '__custom__') {
-            const custom = prompt('พิมพ์ค่าที่ต้องการ:');
-            if (custom && custom.trim()) {
-              handleSelectChange(idx, field, custom.trim(), true, masterType);
-            }
-          } else {
-            handleSelectChange(idx, field, e.target.value, false, masterType);
-          }
-        }}
-      >
-        <option value="">-- เลือก --</option>
-        {sorted.map(o => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-        <option value="__custom__">✏️ พิมพ์เอง...</option>
-      </select>
-    );
-  };
+  const makeSelectElement = (list, value, idx, field, masterType) => (
+    <SearchableSelect
+      options={list}
+      value={value}
+      onChange={(val) => handleStepSelectChange(idx, field, val, list, masterType)}
+    />
+  );
 
   return (
     <div className="page active">
@@ -223,36 +188,27 @@ export default function FormPage({
             </div>
             <div className="frow">
               <span className="flabel" style={{ fontSize: '14px' }}>Mer :</span>
-              <select 
-                className="finput" 
-                style={{ maxWidth: '200px', fontSize: '14px' }}
+              <SearchableSelect
+                className="ssel-form"
+                style={{ maxWidth: '200px' }}
+                options={masterLists.mers || []}
                 value={formState.merText}
-                onChange={(e) => handleDropdownChange('merText', e.target.value, 'mers')}
-              >
-                <option value="">-- เลือก Mer --</option>
-                {sortedMers.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-                <option value="__custom__">✏️ พิมพ์เอง...</option>
-              </select>
+                placeholder="-- เลือก Mer --"
+                onChange={(val) => handleDropdownChange('merText', val, 'mers')}
+              />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div className="frow">
               <span className="flabel" style={{ fontSize: '14px' }}>แบรนด์ :</span>
-              <select 
-                className="finput"
-                style={{ fontSize: '14px' }}
+              <SearchableSelect
+                className="ssel-form"
+                options={masterLists.brands || []}
                 value={formState.brand}
-                onChange={(e) => handleDropdownChange('brand', e.target.value, 'brands')}
-              >
-                <option value="">-- เลือกแบรนด์ --</option>
-                {sortedBrands.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-                <option value="__custom__">✏️ พิมพ์เอง...</option>
-              </select>
+                placeholder="-- เลือกแบรนด์ --"
+                onChange={(val) => handleDropdownChange('brand', val, 'brands')}
+              />
             </div>
             <div className="frow">
               <span className="flabel" style={{ fontSize: '14px' }}>ลูกค้า :</span>
@@ -281,18 +237,13 @@ export default function FormPage({
             </div>
             <div className="frow">
               <span className="flabel" style={{ minWidth: '130px', fontSize: '14px' }}>ประเภทเสื้อผ้า :</span>
-              <select 
-                className="finput"
-                style={{ fontSize: '14px' }}
+              <SearchableSelect
+                className="ssel-form"
+                options={masterLists.clothingTypes || []}
                 value={formState.clothingType || ''}
-                onChange={(e) => handleDropdownChange('clothingType', e.target.value, 'clothingTypes')}
-              >
-                <option value="">-- เลือกประเภท --</option>
-                {sortedClothingTypes.map(ct => (
-                  <option key={ct} value={ct}>{ct}</option>
-                ))}
-                <option value="__custom__">✏️ พิมพ์เอง...</option>
-              </select>
+                placeholder="-- เลือกประเภท --"
+                onChange={(val) => handleDropdownChange('clothingType', val, 'clothingTypes')}
+              />
             </div>
           </div>
 

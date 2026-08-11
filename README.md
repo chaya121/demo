@@ -70,7 +70,7 @@ cp .env.example .env
 - ตั้งค่า `DATABASE_URL` ให้ถูกต้อง
 - ระบบจะตรวจสอบและป้องกันการใช้ SQLite บน Vercel อัตโนมัติ
 
-## � โครงสร้าง Database (Database Schema)
+## 🗄️ โครงสร้าง Database (Database Schema)
 
 ### Table: records
 เก็บข้อมูลรายการผลิตเสื้อผ้าทั้งหมด

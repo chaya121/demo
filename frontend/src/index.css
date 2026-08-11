@@ -631,6 +631,106 @@ body {
   box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
 }
 
+.ssel {
+  position: relative;
+  width: 100%;
+}
+
+/* Modifier: make the combobox blend into a .frow the way .finput does,
+   instead of the transparent table-cell look used in the steps table. */
+.ssel.ssel-form {
+  flex: 1;
+  min-width: 120px;
+}
+
+.ssel.ssel-form .ssel-input {
+  border: 1px solid #bdc3c7;
+  border-radius: 6px;
+  background: #fdfefe;
+  font-size: 15px;
+  padding: 8px 12px;
+}
+
+.ssel.ssel-form .ssel-input:focus {
+  background: #fdfefe;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26, 82, 118, 0.15);
+}
+
+.ssel-input {
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 14px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  outline: none;
+  color: var(--text);
+  cursor: text;
+  transition: var(--transition);
+}
+
+.ssel-input::placeholder {
+  color: #9aa4ab;
+}
+
+.ssel-input:focus {
+  background: #fff;
+  border-color: #bdc3c7;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+}
+
+.ssel-menu {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.ssel-opt {
+  padding: 7px 10px;
+  font-size: 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ssel-opt.hl,
+.ssel-opt:hover {
+  background: var(--pri-lt);
+}
+
+.ssel-opt.sel {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.ssel-opt.ssel-new {
+  color: #1e8449;
+  font-weight: 600;
+}
+
+.ssel-opt.ssel-clear {
+  color: #c0392b;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 4px;
+  border-radius: 0;
+}
+
+.ssel-empty {
+  padding: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .step-tbl-total {
   background: var(--tan-lt);
   border-top: 2px solid var(--tan) !important;
@@ -1650,6 +1750,7 @@ body {
   .wfta,
   .step-tbl-input,
   .step-tbl-select,
+  .ssel-input,
   .master-inp,
   .master-item-name-edit {
     font-size: 16px !important;

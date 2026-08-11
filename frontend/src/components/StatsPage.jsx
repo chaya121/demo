@@ -174,7 +174,7 @@ export default function StatsPage({ records }) {
       </div>
 
       <div className="form-card" style={{ padding: '20px 22px' }}>
-        <div className="sec-label" style={{ fontSize: '16px' }}>�👕 สถิติตามรุ่น / แบรนด์</div>
+        <div className="sec-label" style={{ fontSize: '16px' }}>👕 สถิติตามรุ่น / แบรนด์</div>
         
         {stats.groupedStats.length > 0 ? (
           <div>

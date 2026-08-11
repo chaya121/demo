@@ -20,9 +20,11 @@ const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
 const isVercel = process.env.VERCEL === '1';
 
+// `credentials: true` is only valid alongside a specific origin — pairing it
+// with a wildcard origin is rejected by browsers and flagged by scanners.
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
-  credentials: true
+  credentials: !!process.env.FRONTEND_URL
 }));
 app.use(express.json({ limit: '50mb' }));
 

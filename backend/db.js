@@ -54,6 +54,19 @@ function persist() {
   fs.writeFileSync(dbPath, Buffer.from(data));
 }
 
+// Arbitrary fixed key used with pg_advisory_xact_lock to serialize job_no
+// generation across concurrent Postgres connections/serverless instances.
+const JOB_NO_LOCK_KEY = 741852963;
+
+// In-process mutex for the SQLite/local path, where there's a single Node
+// process and no cross-process concurrency to worry about.
+let localLockChain = Promise.resolve();
+function withLocalLock(fn) {
+  const run = localLockChain.then(fn, fn);
+  localLockChain = run.then(() => {}, () => {});
+  return run;
+}
+
 export async function initDb() {
   if (databaseType === 'postgresql' && databaseUrl) {
     return pgPool;
@@ -156,22 +169,42 @@ function generateJobNumber(record, allRecords) {
 
 export async function createRecord(record) {
   const id = record.id || Date.now();
-  const allRecords = await getAllRecords();
-  const job_no = generateJobNumber(record, allRecords);
-  
-  const data = { ...record, id, job_no };
-  
+
   if (databaseType === 'postgresql' && pgPool) {
-    await pgPool.query(
-      'INSERT INTO records (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = $2',
-      [id, data]
-    );
-    return data;
+    const client = await pgPool.connect();
+    try {
+      await client.query('BEGIN');
+      // Blocks any other transaction generating a job_no until we commit,
+      // so two concurrent saves can never read the same "max run" value.
+      await client.query('SELECT pg_advisory_xact_lock($1)', [JOB_NO_LOCK_KEY]);
+
+      const allRecords = await getAllRecords();
+      const job_no = generateJobNumber(record, allRecords);
+      const data = { ...record, id, job_no };
+
+      await client.query(
+        'INSERT INTO records (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = $2',
+        [id, data]
+      );
+      await client.query('COMMIT');
+      return data;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
   } else {
-    const jsonData = JSON.stringify(data);
-    db.run('INSERT INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
-    persist();
-    return data;
+    return withLocalLock(async () => {
+      const allRecords = await getAllRecords();
+      const job_no = generateJobNumber(record, allRecords);
+      const data = { ...record, id, job_no };
+
+      const jsonData = JSON.stringify(data);
+      db.run('INSERT INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
+      persist();
+      return data;
+    });
   }
 }
 
@@ -180,6 +213,7 @@ export async function bulkCreateRecords(records) {
     const client = await pgPool.connect();
     try {
       await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock($1)', [JOB_NO_LOCK_KEY]);
       const allRecords = await getAllRecords();
       let currentRecords = [...allRecords];
       
@@ -205,21 +239,23 @@ export async function bulkCreateRecords(records) {
     }
     return getAllRecords();
   } else {
-    const allRecords = await getAllRecords();
-    let currentRecords = [...allRecords];
-    
-    for (const record of records) {
-      const id = record.id || Date.now();
-      const job_no = generateJobNumber(record, currentRecords);
-      const data = { ...record, id, job_no };
-      
-      currentRecords.push(data);
-      
-      const jsonData = JSON.stringify(data);
-      db.run('INSERT OR REPLACE INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
-    }
-    persist();
-    return getAllRecords();
+    return withLocalLock(async () => {
+      const allRecords = await getAllRecords();
+      let currentRecords = [...allRecords];
+
+      for (const record of records) {
+        const id = record.id || Date.now();
+        const job_no = generateJobNumber(record, currentRecords);
+        const data = { ...record, id, job_no };
+
+        currentRecords.push(data);
+
+        const jsonData = JSON.stringify(data);
+        db.run('INSERT OR REPLACE INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
+      }
+      persist();
+      return getAllRecords();
+    });
   }
 }
 
