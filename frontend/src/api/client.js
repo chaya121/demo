@@ -8,7 +8,8 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Request failed: ${res.status}`);
+    const fallback = err.error || `Request failed: ${res.status}`;
+    throw new Error(err.detail ? `${fallback}: ${err.detail}` : fallback);
   }
 
   if (res.status === 204) return null;
@@ -19,6 +20,10 @@ export const api = {
   health: () => request('/health'),
 
   getRecords: () => request('/records'),
+
+  // `getRecords()` omits `imgs` to keep the list light; fetch the full
+  // record (with images) only when actually opening/printing one job.
+  getRecord: (id) => request(`/records/${id}`),
 
   createRecord: (record) =>
     request('/records', { method: 'POST', body: JSON.stringify(record) }),

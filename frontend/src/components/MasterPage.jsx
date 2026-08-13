@@ -1,7 +1,31 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 
-export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
+const withDetail = (prefix, err) => (err?.message ? `${prefix}: ${err.message}` : prefix);
+
+// How many production records currently reference a given master-data value,
+// so deleting/renaming it can warn instead of silently orphaning references.
+function countUsage(type, value, records) {
+  if (!records || !value) return 0;
+  switch (type) {
+    case 'mers':
+      return records.filter(r => r.merText === value).length;
+    case 'brands':
+      return records.filter(r => r.brand === value).length;
+    case 'clothingTypes':
+      return records.filter(r => r.clothingType === value).length;
+    case 'parts':
+      return records.filter(r => (r.steps || []).some(s => s.part === value)).length;
+    case 'steps':
+      return records.filter(r => (r.steps || []).some(s => s.step === value)).length;
+    case 'machines':
+      return records.filter(r => (r.steps || []).some(s => s.machine === value)).length;
+    default:
+      return 0;
+  }
+}
+
+export default function MasterPage({ masterLists, onUpdateMaster, showToast, records }) {
   const categories = [
     { type: 'mers', label: 'Mer', icon: '🎨', placeholder: 'เพิ่ม Mer ใหม่...' },
     { type: 'brands', label: 'แบรนด์ (Brand)', icon: '🏷️', placeholder: 'เพิ่มแบรนด์ใหม่...' },
@@ -112,7 +136,7 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
         }
       } catch (err) {
         console.error(err);
-        showToast('เกิดข้อผิดพลาดในการอ่านไฟล์', 'err');
+        showToast(withDetail('เกิดข้อผิดพลาดในการอ่านไฟล์', err), 'err');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -153,6 +177,7 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
             list={masterLists[cat.type] || []}
             onUpdate={(newList) => onUpdateMaster(cat.type, newList)}
             showToast={showToast}
+            records={records}
           />
         ))}
       </div>
@@ -160,7 +185,7 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast }) {
   );
 }
 
-function MasterListSection({ type, label, icon, placeholder, list, onUpdate, showToast }) {
+function MasterListSection({ type, label, icon, placeholder, list, onUpdate, showToast, records }) {
   const [newValue, setNewValue] = useState('');
   const [editingIndex, setEditingIndex] = useState(-1);
   const [editingValue, setEditingValue] = useState('');
@@ -214,10 +239,12 @@ function MasterListSection({ type, label, icon, placeholder, list, onUpdate, sho
       
       <div className="master-list">
         {list.length > 0 ? (
-          list.map((item, idx) => (
+          list.map((item, idx) => {
+            const usageCount = deletingIndex === idx ? countUsage(type, item, records) : 0;
+            return (
             <div className="master-item" key={idx}>
               <span className="master-item-icon">{icon}</span>
-              
+
               {editingIndex === idx ? (
                 <input
                   className="master-item-name-edit"
@@ -241,9 +268,11 @@ function MasterListSection({ type, label, icon, placeholder, list, onUpdate, sho
                   </>
                 ) : deletingIndex === idx ? (
                   <>
-                    <span style={{ fontSize: '14px', color: '#c0392b', fontWeight: '600', alignSelf: 'center' }}>ลบแน่ใจ?</span>
-                    <button 
-                      className="master-del-btn" 
+                    <span style={{ fontSize: '14px', color: '#c0392b', fontWeight: '600', alignSelf: 'center' }}>
+                      {usageCount > 0 ? `ลบแน่ใจ? (ใช้อยู่ ${usageCount} ใบ)` : 'ลบแน่ใจ?'}
+                    </span>
+                    <button
+                      className="master-del-btn"
                       style={{ background: '#c0392b', color: '#fff', borderColor: '#c0392b' }}
                       onClick={() => handleConfirmDelete(idx)}
                     >
@@ -259,7 +288,8 @@ function MasterListSection({ type, label, icon, placeholder, list, onUpdate, sho
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         ) : (
           <div className="master-empty">ยังไม่มีรายการ</div>
         )}

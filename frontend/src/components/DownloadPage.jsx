@@ -11,6 +11,8 @@ function formatDispDate(dateStr) {
   return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+const withDetail = (prefix, err) => (err?.message ? `${prefix}: ${err.message}` : prefix);
+
 export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   const [filterCustomer, setFilterCustomer] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -55,9 +57,21 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
         return da < db ? -1 : da > db ? 1 : 0;
       });
   }, [records, filterCustomer, filterBrand, filterDateFrom, filterDateTo]);
-  const handlePdfDownload = (record) => {
+  const handlePdfDownload = async (record) => {
+    // The list omits `imgs` to keep the initial load light; fetch the full
+    // record (with images) now that this specific job is being printed.
+    let full = record;
+    try {
+      showToast('กำลังโหลดข้อมูล...');
+      const fetched = await api.getRecord(record.id);
+      if (fetched) full = fetched;
+    } catch (err) {
+      console.error(err);
+      showToast(withDetail('โหลดรูปภาพไม่สำเร็จ จะสร้าง PDF โดยไม่มีรูป', err), 'err');
+    }
+
     generatePDF(
-      record,
+      full,
       () => showToast('กำลังสร้าง PDF...'),
       () => showToast('ดาวน์โหลดสำเร็จ'),
       () => showToast('เกิดข้อผิดพลาดในการสร้าง PDF', 'err')
@@ -155,7 +169,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
       showToast('ส่งออกไฟล์ Excel สำเร็จ');
     } catch (err) {
       console.error(err);
-      showToast('เกิดข้อผิดพลาดในการส่งออก Excel', 'err');
+      showToast(withDetail('เกิดข้อผิดพลาดในการส่งออก Excel', err), 'err');
     }
   };
 
@@ -242,7 +256,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
         window.location.reload();
       } catch (err) {
         console.error(err);
-        showToast('เกิดข้อผิดพลาดในการนำเข้า Excel', 'err');
+        showToast(withDetail('เกิดข้อผิดพลาดในการนำเข้า Excel', err), 'err');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -386,6 +400,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
                           · 🚢 Ship: {new Date(r.shipDate + 'T00:00:00').toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>
                       )}
+                      {r.hasImages && <span title="มีรูปแนบ"> · 📷</span>}
                     </div>
                   </div>
                   <div className="rec-badge">

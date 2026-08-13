@@ -105,12 +105,23 @@ export async function initDb() {
   }
 }
 
+// Strips the (potentially large, base64-encoded) `imgs` field from a record,
+// keeping just a boolean so the UI can still show "this record has photos"
+// without shipping the actual image bytes in the list response.
+function stripImages(recordData) {
+  const { imgs, ...rest } = recordData;
+  return { ...rest, hasImages: Array.isArray(imgs) && imgs.length > 0 };
+}
+
 export async function getAllRecords() {
   if (databaseType === 'postgresql' && pgPool) {
     const result = await pgPool.query('SELECT id, data, created_at FROM records ORDER BY id DESC');
     return result.rows.map(row => ({
-      ...row.data,
-      id: row.id,
+      ...stripImages(row.data),
+      // pg returns BIGINT columns as strings to avoid precision loss; cast
+      // back to Number so `id` is always the same type as a freshly-created
+      // record's id (Date.now()), regardless of where the record came from.
+      id: Number(row.id),
       created_at: row.created_at
     }));
   } else {
@@ -119,8 +130,8 @@ export async function getAllRecords() {
     while (stmt.step()) {
       const row = stmt.getAsObject();
       rows.push({
-        ...JSON.parse(row.data),
-        id: row.id,
+        ...stripImages(JSON.parse(row.data)),
+        id: Number(row.id),
       });
     }
     stmt.free();
@@ -128,12 +139,29 @@ export async function getAllRecords() {
   }
 }
 
+export async function getRecordById(id) {
+  if (databaseType === 'postgresql' && pgPool) {
+    const result = await pgPool.query('SELECT id, data, created_at FROM records WHERE id = $1', [id]);
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return { ...row.data, id: Number(row.id), created_at: row.created_at };
+  } else {
+    const stmt = db.prepare('SELECT id, data FROM records WHERE id = ?');
+    stmt.bind([id]);
+    if (!stmt.step()) {
+      stmt.free();
+      return null;
+    }
+    const row = stmt.getAsObject();
+    stmt.free();
+    return { ...JSON.parse(row.data), id: Number(row.id) };
+  }
+}
+
 function getMerCode(merText) {
   if (!merText) return 'X';
-  if (merText.includes('เหลง')) return 'L';
-  if (merText.includes('จูน')) return 'J';
-  if (merText.includes('ยุ้ย')) return 'Y';
-  return 'X';
+  const firstChar = merText.trim().charAt(0).toUpperCase();
+  return /[A-Z]/.test(firstChar) ? firstChar : 'X';
 }
 
 function generateJobNumber(record, allRecords) {

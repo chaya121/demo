@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import {
   initDb,
   getAllRecords,
+  getRecordById,
   createRecord,
   bulkCreateRecords,
   deleteRecord,
@@ -28,6 +29,13 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 
+// Surface the actual DB/driver error message alongside the generic fallback
+// so a failure can be diagnosed from the toast/network tab without needing
+// server log access.
+function errPayload(fallback, err) {
+  return { error: fallback, detail: err?.message };
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
@@ -37,7 +45,22 @@ app.get('/api/records', async (_req, res) => {
     res.json(await getAllRecords());
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch records' });
+    res.status(500).json(errPayload('Failed to fetch records', err));
+  }
+});
+
+// Full record (including images) for a single job — the list endpoint above
+// omits `imgs` to keep the initial page load light.
+app.get('/api/records/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+    const record = await getRecordById(id);
+    if (!record) return res.status(404).json({ error: 'Record not found' });
+    res.json(record);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(errPayload('Failed to fetch record', err));
   }
 });
 
@@ -47,7 +70,7 @@ app.post('/api/records', async (req, res) => {
     res.status(201).json(record);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to create record' });
+    res.status(500).json(errPayload('Failed to create record', err));
   }
 });
 
@@ -60,7 +83,7 @@ app.post('/api/records/bulk', async (req, res) => {
     res.json(await bulkCreateRecords(records));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to import records' });
+    res.status(500).json(errPayload('Failed to import records', err));
   }
 });
 
@@ -73,7 +96,7 @@ app.delete('/api/records/:id', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to delete record' });
+    res.status(500).json(errPayload('Failed to delete record', err));
   }
 });
 
@@ -88,7 +111,7 @@ app.put('/api/records/:id', async (req, res) => {
     if (err.message === 'Record not found') {
       res.status(404).json({ error: 'Record not found' });
     } else {
-      res.status(500).json({ error: 'Failed to update record' });
+      res.status(500).json(errPayload('Failed to update record', err));
     }
   }
 });
@@ -98,7 +121,7 @@ app.get('/api/master', async (_req, res) => {
     res.json(await getMaster());
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch master data' });
+    res.status(500).json(errPayload('Failed to fetch master data', err));
   }
 });
 
@@ -108,7 +131,7 @@ app.put('/api/master', async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to save master data' });
+    res.status(500).json(errPayload('Failed to save master data', err));
   }
 });
 
@@ -118,7 +141,7 @@ app.delete('/api/clear', async (_req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to clear database' });
+    res.status(500).json(errPayload('Failed to clear database', err));
   }
 });
 

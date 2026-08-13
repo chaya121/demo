@@ -46,6 +46,18 @@ const DEFAULT_MASTER = {
   machines: MACHINE_LIST
 };
 
+// Appends the underlying error message (e.g. from a failed API call) to a
+// Thai fallback string, so a toast is actionable instead of just "failed".
+const withDetail = (prefix, err) => (err?.message ? `${prefix}: ${err.message}` : prefix);
+
+// api.createRecord/updateRecord return the full record (with imgs), unlike
+// the list endpoint (imgs stripped, hasImages instead) — keep the `records`
+// array's shape consistent so `r.hasImages` works everywhere it's rendered.
+const withHasImages = (record) => ({
+  ...record,
+  hasImages: Array.isArray(record.imgs) && record.imgs.length > 0,
+});
+
 const createEmptyFormState = () => ({
   date: '',
   merText: '',
@@ -134,7 +146,7 @@ export default function App() {
       } catch (err) {
         console.error(err);
         if (!cancelled) {
-          showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารัน npm run dev', 'err');
+          showToast(withDetail('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารัน npm run dev', err), 'err');
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -155,7 +167,7 @@ export default function App() {
       await api.saveMaster(updated);
     } catch (err) {
       console.error(err);
-      showToast('บันทึกข้อมูลหลักไม่สำเร็จ', 'err');
+      showToast(withDetail('บันทึกข้อมูลหลักไม่สำเร็จ', err), 'err');
     }
   };
 
@@ -208,7 +220,7 @@ export default function App() {
           id: editingId
         };
         const saved = await api.updateRecord(editingId, updatedRecord);
-        setRecords(prev => prev.map(r => r.id === editingId ? saved : r));
+        setRecords(prev => prev.map(r => r.id === editingId ? withHasImages(saved) : r));
         setEditingId(null);
         showToast(`แก้ไขข้อมูลสำเร็จ: ${saved.job_no || ''}`);
       } else {
@@ -218,7 +230,7 @@ export default function App() {
           id: Date.now()
         };
         const saved = await api.createRecord(newRecord);
-        setRecords(prev => [saved, ...prev]);
+        setRecords(prev => [withHasImages(saved), ...prev]);
         showToast(`บันทึกสำเร็จ: เลขที่ ${saved.job_no || ''}`);
       }
       setIsPreviewOpen(false);
@@ -226,7 +238,7 @@ export default function App() {
       setActiveTab('download');
     } catch (err) {
       console.error(err);
-      showToast('บันทึกไม่สำเร็จ', 'err');
+      showToast(withDetail('บันทึกไม่สำเร็จ', err), 'err');
     }
   };
 
@@ -237,16 +249,27 @@ export default function App() {
       showToast('ลบสำเร็จ');
     } catch (err) {
       console.error(err);
-      showToast('ลบไม่สำเร็จ', 'err');
+      showToast(withDetail('ลบไม่สำเร็จ', err), 'err');
     }
   };
 
-  const handleLoadRecord = (id) => {
-    const r = records.find(rec => rec.id === id);
-    if (!r) return;
-    
+  const handleLoadRecord = async (id) => {
+    const listRecord = records.find(rec => rec.id === id);
+    if (!listRecord) return;
+
     setEditingId(id);
-    
+
+    // The list endpoint omits `imgs` to keep the initial load light; fetch
+    // the full record now that a specific job is actually being opened.
+    let r = listRecord;
+    try {
+      const full = await api.getRecord(id);
+      if (full) r = full;
+    } catch (err) {
+      console.error(err);
+      showToast(withDetail('โหลดรูปภาพไม่สำเร็จ ข้อมูลอื่นยังโหลดได้ปกติ', err), 'err');
+    }
+
     // Handle old grouped steps format if any
     let steps = [];
     if (r.steps && r.steps.length && r.steps[0].subSteps) {
@@ -352,10 +375,11 @@ export default function App() {
           <StatsPage records={records} />
         )}
         {activeTab === 'master' && (
-          <MasterPage 
+          <MasterPage
             masterLists={masterLists}
             onUpdateMaster={handleUpdateMaster}
             showToast={showToast}
+            records={records}
           />
         )}
       </div>
