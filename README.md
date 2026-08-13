@@ -4,7 +4,7 @@
 
 ## 🚀 เทคโนโลยีที่ใช้
 
-- **Frontend**: React 19, Vite, TailwindCSS
+- **Frontend**: React 19, Vite, Custom CSS (ไม่ได้ใช้ Tailwind หรือ UI framework ใด)
 - **Backend**: Express.js, Node.js
 - **Database**: PostgreSQL (Supabase) / SQLite (fallback)
 - **Deployment**: Vercel
@@ -85,15 +85,27 @@ cp .env.example .env
 ```json
 {
   "id": 1720920000000,
+  "job_no": "14072024L001",
   "date": "2024-07-14",
-  "orderNo": "ORD-001",
-  "customer": "Customer Name",
-  "style": "Style-A",
-  "quantity": 100,
-  "status": "completed",
-  "otherFields": "..."
+  "shipDate": "2024-07-20",
+  "merText": "เหลง",
+  "brand": "LFC",
+  "customer": "ลูกค้า A",
+  "model": "Action Tee",
+  "clothingType": "โปโล",
+  "qty": 300,
+  "size": "S-XL",
+  "colors": 5,
+  "imgs": ["data:image/jpeg;base64,..."],
+  "steps": [
+    { "part": "ตัวหน้า", "step": "เย็บติดปก", "machine": "จักรเข็มคู่", "time": 12.5, "workers": 1, "note": "" }
+  ],
+  "estWage": 15000,
+  "actual": { "start": "", "end": "", "wage": "", "total": "" },
+  "chk": { "pak": false, "print": false, "tag": false }
 }
 ```
+> ฟิลด์อื่นๆ (เช่น `detail`, `warning`, `solution`, `noteProd`, `noteSales`) ถูกเก็บอยู่ใน `data` เช่นกันตามที่กรอกในฟอร์ม — ดูโครงสร้างเต็มได้ที่ `createEmptyFormState()` ใน `frontend/src/App.jsx`
 
 ### Table: master
 เก็บข้อมูลหลัก (master data) สำหรับการตั้งค่าระบบ
@@ -106,15 +118,15 @@ cp .env.example .env
 **ตัวอย่างโครงสร้างข้อมูลใน `data`:**
 ```json
 {
-  "customers": ["Customer A", "Customer B", "Customer C"],
-  "styles": ["Style-A", "Style-B", "Style-C"],
-  "statuses": ["pending", "in-progress", "completed"],
-  "settings": {
-    "defaultQuantity": 100,
-    "currency": "THB"
-  }
+  "mers": ["เหลง", "จูน", "ยุ้ย"],
+  "brands": ["LFC", "Fasonaf"],
+  "clothingTypes": ["โปโล", "เสื้อยืด"],
+  "parts": ["ตัวหน้า", "ตัวหลัง", "ปก", "แขน"],
+  "steps": ["เย็บต่อไหล่", "เย็บติดปก", "เย็บติดแขน"],
+  "machines": ["จักรลา", "จักรเข็มเดี่ยว", "จักรเข็มคู่"]
 }
 ```
+> แต่ละ key คือรายการ (array of strings) ที่ใช้เป็นตัวเลือกในฟอร์ม จัดการได้จากหน้า "⚙️ ข้อมูลหลัก" ในแอป
 
 ### ความแตกต่างระหว่าง PostgreSQL และ SQLite
 
@@ -136,23 +148,16 @@ cp .env.example .env
 erDiagram
     records {
         BIGINT id PK
-        JSONB data "ข้อมูลรายการผลิต"
+        JSONB data "ข้อมูลรายการผลิตแต่ละใบ"
         TIMESTAMP created_at
     }
-    
+
     master {
-        INTEGER id PK "เสมอเป็น 1"
-        JSONB data "ข้อมูลหลัก (master data)"
-    }
-    
-    master ||--|| records : "อ้างอิง"
-    
-    notes {
-        type: "records เก็บข้อมูลรายการผลิตแต่ละรายการ"
-        type: "master เก็บข้อมูลหลักแบบ single row"
-        type: "ทั้งสองตารางใช้ JSON/JSONB เก็บข้อมูลที่ยืดหยุ่น"
+        INTEGER id PK "เสมอเป็น 1 (single row)"
+        JSONB data "ข้อมูลหลัก (mers, brands, parts ฯลฯ)"
     }
 ```
+> `records` และ `master` เป็นตารางอิสระต่อกัน **ไม่มี foreign key เชื่อมกัน** — `master` เก็บแค่รายการตัวเลือกกลาง (dropdown options) ที่ฟอร์มดึงไปใช้ตอนกรอกข้อมูลของแต่ละ `records` เท่านั้น
 
 ## 📝 Environment Variables
 
@@ -167,6 +172,11 @@ erDiagram
 **Frontend Variables:**
 - `VITE_SUPABASE_URL` = Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` = Supabase anon key
+
+> ⚠️ ตัวแปรสองตัวนี้**ยังไม่ถูกใช้จริงในโค้ด frontend ปัจจุบัน** (ไม่มีการเรียก Supabase client ฝั่ง frontend เลย — ฝั่ง frontend คุยกับข้อมูลผ่าน `/api/*` ของ backend เท่านั้น) เก็บไว้เผื่อใช้งานในอนาคต (เช่น Supabase Storage) ข้ามได้ถ้ายังไม่ได้ใช้
+
+**Frontend Variable (optional):**
+- `VITE_API_URL` = base URL ของ backend API (ค่า default คือ `/api` ใช้ได้เลยถ้า deploy รวมกันแบบ monorepo ตามปกติของโปรเจกต์นี้ ตั้งเฉพาะถ้าแยก deploy frontend/backend คนละที่)
 
 ### สำหรับการพัฒนา (Development)
 
@@ -258,20 +268,22 @@ domo_ac/
 │   │   └── icons.svg             # Icons
 │   ├── src/                      # Source code
 │   │   ├── api/                  # API client
-│   │   │   └── client.js         # Axios client configuration
+│   │   │   └── client.js         # fetch()-based client (ไม่ได้ใช้ Axios)
 │   │   ├── assets/               # Assets
 │   │   │   ├── hero.png          # Hero image
 │   │   │   ├── react.svg         # React logo
 │   │   │   └── vite.svg          # Vite logo
 │   │   ├── components/           # React components
-│   │   │   ├── DownloadPage.jsx  # Download/Export page
-│   │   │   ├── FormPage.jsx      # Form input page
-│   │   │   ├── Header.jsx        # Header component
-│   │   │   ├── MasterPage.jsx    # Master data management
-│   │   │   ├── PreviewModal.jsx  # PDF preview modal
-│   │   │   ├── StatsPage.jsx     # Statistics page
-│   │   │   └── TabBar.jsx        # Tab navigation
+│   │   │   ├── DownloadPage.jsx     # Download/Export page
+│   │   │   ├── FormPage.jsx         # Form input page
+│   │   │   ├── Header.jsx           # Header component
+│   │   │   ├── MasterPage.jsx       # Master data management
+│   │   │   ├── PreviewModal.jsx     # Preview modal ก่อนบันทึก
+│   │   │   ├── SearchableSelect.jsx # Combobox พิมพ์ค้นหาได้ (ใช้แทน <select> ทั้งระบบ)
+│   │   │   ├── StatsPage.jsx        # Statistics page
+│   │   │   └── TabBar.jsx           # Tab navigation
 │   │   ├── utils/                # Utility functions
+│   │   │   ├── imageUtils.js     # บีบอัดรูปภาพก่อนอัปโหลด
 │   │   │   └── pdfGenerator.js   # PDF generation logic
 │   │   ├── App.css               # App styles
 │   │   ├── App.jsx               # Main App component
@@ -295,8 +307,9 @@ domo_ac/
 ## 🔌 API Endpoints
 
 ### Records
-- `GET /api/records` - ดึงข้อมูลทั้งหมด
-- `POST /api/records` - เพิ่มข้อมูลใหม่
+- `GET /api/records` - ดึงข้อมูลทั้งหมด (ไม่รวมรูปภาพ `imgs` เพื่อลดขนาด payload — มีแค่ `hasImages: true/false` แทน)
+- `GET /api/records/:id` - ดึงข้อมูลเต็มของใบเดียว (รวมรูปภาพ) ใช้ตอนเปิดแก้ไข/สร้าง PDF
+- `POST /api/records` - เพิ่มข้อมูลใหม่ (ระบบสร้าง `job_no` ให้อัตโนมัติ)
 - `PUT /api/records/:id` - แก้ไขข้อมูล
 - `DELETE /api/records/:id` - ลบข้อมูล
 - `POST /api/records/bulk` - เพิ่มข้อมูลหลายรายการ
