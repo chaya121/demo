@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
+import HomePage from './components/HomePage';
 import TabBar from './components/TabBar';
 import FormPage from './components/FormPage';
 import DownloadPage from './components/DownloadPage';
@@ -114,6 +115,7 @@ export default function App() {
   const [previewData, setPreviewData] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [showHome, setShowHome] = useState(true);
 
   const showToast = (message, type = 'success') => {
     const id = Date.now();
@@ -343,54 +345,60 @@ export default function App() {
 
   return (
     <div>
-      <Header />
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {isLoading ? (
-        <div className="wrap" style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>⏳</div>
-          <p style={{ color: 'var(--muted)' }}>กำลังโหลดข้อมูลจากเซิร์ฟเวอร์...</p>
-        </div>
+      {showHome ? (
+        <HomePage onStart={() => { setActiveTab('form'); setShowHome(false); }} />
       ) : (
-      <div className="wrap">
-        {activeTab === 'form' && (
-          <FormPage 
-            formState={formState}
-            setFormState={setFormState}
-            masterLists={masterLists}
-            onAddMasterItem={handleAddMasterItem}
-            onClear={handleClearForm}
-            onPreview={handlePreview}
-          />
-        )}
-        {activeTab === 'download' && (
-          <DownloadPage 
-            records={records}
-            onDelete={handleDeleteRecord}
-            onLoad={handleLoadRecord}
-            showToast={showToast}
-          />
-        )}
-        {activeTab === 'stats' && (
-          <StatsPage records={records} />
-        )}
-        {activeTab === 'master' && (
-          <MasterPage
-            masterLists={masterLists}
-            onUpdateMaster={handleUpdateMaster}
-            showToast={showToast}
-            records={records}
-          />
-        )}
-      </div>
-      )}
+        <>
+          <Header onLogoClick={() => setShowHome(true)} />
+          <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <PreviewModal
-        data={previewData}
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        onConfirm={handleConfirmSave}
-      />
+          {isLoading ? (
+            <div className="wrap" style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>⏳</div>
+              <p style={{ color: 'var(--muted)' }}>กำลังโหลดข้อมูลจากเซิร์ฟเวอร์...</p>
+            </div>
+          ) : (
+          <div className="wrap">
+            {activeTab === 'form' && (
+              <FormPage
+                formState={formState}
+                setFormState={setFormState}
+                masterLists={masterLists}
+                onAddMasterItem={handleAddMasterItem}
+                onClear={handleClearForm}
+                onPreview={handlePreview}
+              />
+            )}
+            {activeTab === 'download' && (
+              <DownloadPage
+                records={records}
+                onDelete={handleDeleteRecord}
+                onLoad={handleLoadRecord}
+                showToast={showToast}
+              />
+            )}
+            {activeTab === 'stats' && (
+              <StatsPage records={records} />
+            )}
+            {activeTab === 'master' && (
+              <MasterPage
+                masterLists={masterLists}
+                onUpdateMaster={handleUpdateMaster}
+                showToast={showToast}
+                records={records}
+              />
+            )}
+          </div>
+          )}
+
+          <PreviewModal
+            data={previewData}
+            isOpen={isPreviewOpen}
+            onClose={() => setIsPreviewOpen(false)}
+            onConfirm={handleConfirmSave}
+          />
+        </>
+      )}
 
       <div className="toast-container">
         {toasts.map(t => (
