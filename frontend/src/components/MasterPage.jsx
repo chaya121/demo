@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
 
 const withDetail = (prefix, err) => (err?.message ? `${prefix}: ${err.message}` : prefix);
 
@@ -40,8 +39,11 @@ export default function MasterPage({ masterLists, onUpdateMaster, showToast, rec
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        // Lazy-loaded: xlsx is ~400kb, no reason to ship it in the main
+        // bundle when most visits never touch Excel import.
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(evt.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];

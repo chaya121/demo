@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { generatePDF } from '../utils/pdfGenerator';
-import { utils, writeFile, read } from 'xlsx';
 import { api } from '../api/client';
 import SearchableSelect from './SearchableSelect';
 
@@ -84,13 +83,16 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
     }
   };
 
-  const handleExcelExport = () => {
+  const handleExcelExport = async () => {
     if (!records || records.length === 0) {
       showToast('ไม่มีข้อมูลใบขั้นตอนการผลิตสำหรับส่งออก', 'err');
       return;
     }
-    
+
     try {
+      // Lazy-loaded: xlsx is ~400kb, no reason to ship it in the main bundle
+      // when most visits never touch Excel import/export.
+      const { utils, writeFile } = await import('xlsx');
       const summaryData = records.map((r, idx) => {
         const steps = r.steps || [];
         const totalSec = steps.reduce((s, row) => s + (parseFloat(row.time) || 0), 0);
@@ -180,6 +182,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
+        const { utils, read } = await import('xlsx');
         const data = new Uint8Array(event.target.result);
         const workbook = read(data, { type: 'array' });
         
