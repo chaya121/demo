@@ -1,7 +1,9 @@
 import React from 'react';
 
-export default function PreviewModal({ data, isOpen, onClose, onConfirm }) {
+export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSaving }) {
   if (!isOpen || !data) return null;
+
+  const safeClose = () => { if (!isSaving) onClose(); };
 
   const esc = (s) => s || '-';
 
@@ -63,12 +65,14 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm }) {
   ];
 
   return (
-    <div className="pv-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="pv-overlay" onClick={(e) => e.target === e.currentTarget && safeClose()}>
       <div className="pv-sheet">
         <div className="pv-topbar">
-          <button className="pv-btn-back" onClick={onClose}>← กลับแก้ไข</button>
+          <button className="pv-btn-back" onClick={safeClose} disabled={isSaving}>← กลับแก้ไข</button>
           <span className="pv-topbar-title">ตรวจสอบใบดี</span>
-          <button className="pv-btn-save" onClick={onConfirm}>💾 ยืนยันบันทึก</button>
+          <button className="pv-btn-save" onClick={onConfirm} disabled={isSaving}>
+            {isSaving ? '⏳ กำลังบันทึก...' : '💾 ยืนยันบันทึก'}
+          </button>
         </div>
 
         <div className="pv-body">
@@ -312,8 +316,10 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm }) {
         </div>
 
         <div className="pv-bottom">
-          <button className="pv-bottom-back" onClick={onClose}>← กลับแก้ไข</button>
-          <button className="pv-bottom-save" onClick={onConfirm}>💾 ยืนยันบันทึกใบดี</button>
+          <button className="pv-bottom-back" onClick={safeClose} disabled={isSaving}>← กลับแก้ไข</button>
+          <button className="pv-bottom-save" onClick={onConfirm} disabled={isSaving}>
+            {isSaving ? '⏳ กำลังบันทึก...' : '💾 ยืนยันบันทึกใบดี'}
+          </button>
         </div>
       </div>
     </div>

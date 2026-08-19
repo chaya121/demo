@@ -46,25 +46,24 @@ if (databaseType === 'postgresql' && databaseUrl) {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS job_counters (
+      year INTEGER PRIMARY KEY,
+      last_run INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT INTO job_counters (year, last_run)
+    SELECT
+      substring(data->>'job_no' from 5 for 4)::int AS year,
+      MAX(substring(data->>'job_no' from '[0-9]+$')::int) AS max_run
+    FROM records
+    WHERE data->>'job_no' IS NOT NULL AND length(data->>'job_no') >= 12
+    GROUP BY substring(data->>'job_no' from 5 for 4)
+    ON CONFLICT (year) DO UPDATE SET last_run = GREATEST(job_counters.last_run, EXCLUDED.last_run);
   `).catch(err => console.error('DB Init Error:', err.message));
 }
 
 function persist() {
   const data = db.export();
   fs.writeFileSync(dbPath, Buffer.from(data));
-}
-
-// Arbitrary fixed key used with pg_advisory_xact_lock to serialize job_no
-// generation across concurrent Postgres connections/serverless instances.
-const JOB_NO_LOCK_KEY = 741852963;
-
-// In-process mutex for the SQLite/local path, where there's a single Node
-// process and no cross-process concurrency to worry about.
-let localLockChain = Promise.resolve();
-function withLocalLock(fn) {
-  const run = localLockChain.then(fn, fn);
-  localLockChain = run.then(() => {}, () => {});
-  return run;
 }
 
 export async function initDb() {
@@ -98,6 +97,24 @@ export async function initDb() {
         id INTEGER PRIMARY KEY CHECK (id = 1),
         data TEXT NOT NULL
       )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS job_counters (
+        year INTEGER PRIMARY KEY,
+        last_run INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+
+    db.run(`
+      INSERT INTO job_counters (year, last_run)
+      SELECT
+        CAST(substr(json_extract(data, '$.job_no'), 5, 4) AS INTEGER) AS year,
+        MAX(CAST(substr(json_extract(data, '$.job_no'), 10) AS INTEGER)) AS max_run
+      FROM records
+      WHERE json_extract(data, '$.job_no') IS NOT NULL AND length(json_extract(data, '$.job_no')) >= 12
+      GROUP BY year
+      ON CONFLICT(year) DO UPDATE SET last_run = MAX(last_run, excluded.last_run)
     `);
 
     persist();
@@ -164,35 +181,58 @@ function getMerCode(merText) {
   return /[A-Z]/.test(firstChar) ? firstChar : 'X';
 }
 
-function generateJobNumber(record, allRecords) {
-  if (record.job_no) return record.job_no;
-
+// DDMMYYYY + mer code + running number, e.g. "11082026J004". The running
+// number is a per-year counter (not per-day/per-mer), matching the format
+// established by the original scanning-based implementation.
+function buildJobNoParts(record) {
   const dateObj = record.date ? new Date(record.date) : new Date();
   const dd = String(dateObj.getDate()).padStart(2, '0');
   const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const yyyy = String(dateObj.getFullYear());
-  
+  const yyyy = dateObj.getFullYear();
   const merCode = getMerCode(record.merText);
+  return { dd, mm, yyyy, merCode };
+}
 
-  let maxRun = 0;
-  for (const r of allRecords) {
-    if (r.job_no && r.job_no.length >= 12) { // DDMMYYYYmerXXX (at least 12 chars usually)
-      const rYear = r.job_no.substring(4, 8);
-      if (rYear === yyyy) {
-        // Find the number part at the end
-        const match = r.job_no.match(/\d+$/);
-        if (match) {
-          const runNum = parseInt(match[0], 10);
-          if (runNum > maxRun) {
-            maxRun = runNum;
-          }
-        }
-      }
-    }
-  }
+// Atomically increments (and returns) the running counter for a year via a
+// single UPSERT — no advisory lock, no scanning existing records for MAX(),
+// so this can't hang waiting on a stuck lock and doesn't slow down as the
+// records table grows.
+async function nextRunNumberPg(client, yyyy) {
+  const result = await client.query(
+    `INSERT INTO job_counters (year, last_run) VALUES ($1, 1)
+     ON CONFLICT (year) DO UPDATE SET last_run = job_counters.last_run + 1
+     RETURNING last_run`,
+    [yyyy]
+  );
+  return result.rows[0].last_run;
+}
 
-  const nextRun = String(maxRun + 1).padStart(3, '0');
-  return `${dd}${mm}${yyyy}${merCode}${nextRun}`;
+function nextRunNumberSqlite(yyyy) {
+  db.run(
+    `INSERT INTO job_counters (year, last_run) VALUES (?, 1)
+     ON CONFLICT(year) DO UPDATE SET last_run = last_run + 1`,
+    [yyyy]
+  );
+  const stmt = db.prepare('SELECT last_run FROM job_counters WHERE year = ?');
+  stmt.bind([yyyy]);
+  stmt.step();
+  const row = stmt.getAsObject();
+  stmt.free();
+  return row.last_run;
+}
+
+async function generateJobNumberPg(client, record) {
+  if (record.job_no) return record.job_no;
+  const { dd, mm, yyyy, merCode } = buildJobNoParts(record);
+  const runNum = await nextRunNumberPg(client, yyyy);
+  return `${dd}${mm}${yyyy}${merCode}${String(runNum).padStart(3, '0')}`;
+}
+
+function generateJobNumberSqlite(record) {
+  if (record.job_no) return record.job_no;
+  const { dd, mm, yyyy, merCode } = buildJobNoParts(record);
+  const runNum = nextRunNumberSqlite(yyyy);
+  return `${dd}${mm}${yyyy}${merCode}${String(runNum).padStart(3, '0')}`;
 }
 
 export async function createRecord(record) {
@@ -202,12 +242,7 @@ export async function createRecord(record) {
     const client = await pgPool.connect();
     try {
       await client.query('BEGIN');
-      // Blocks any other transaction generating a job_no until we commit,
-      // so two concurrent saves can never read the same "max run" value.
-      await client.query('SELECT pg_advisory_xact_lock($1)', [JOB_NO_LOCK_KEY]);
-
-      const allRecords = await getAllRecords();
-      const job_no = generateJobNumber(record, allRecords);
+      const job_no = await generateJobNumberPg(client, record);
       const data = { ...record, id, job_no };
 
       await client.query(
@@ -223,16 +258,13 @@ export async function createRecord(record) {
       client.release();
     }
   } else {
-    return withLocalLock(async () => {
-      const allRecords = await getAllRecords();
-      const job_no = generateJobNumber(record, allRecords);
-      const data = { ...record, id, job_no };
+    const job_no = generateJobNumberSqlite(record);
+    const data = { ...record, id, job_no };
 
-      const jsonData = JSON.stringify(data);
-      db.run('INSERT INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
-      persist();
-      return data;
-    });
+    const jsonData = JSON.stringify(data);
+    db.run('INSERT INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
+    persist();
+    return data;
   }
 }
 
@@ -241,18 +273,12 @@ export async function bulkCreateRecords(records) {
     const client = await pgPool.connect();
     try {
       await client.query('BEGIN');
-      await client.query('SELECT pg_advisory_xact_lock($1)', [JOB_NO_LOCK_KEY]);
-      const allRecords = await getAllRecords();
-      let currentRecords = [...allRecords];
-      
+
       for (const record of records) {
         const id = record.id || Date.now();
-        const job_no = generateJobNumber(record, currentRecords);
+        const job_no = await generateJobNumberPg(client, record);
         const data = { ...record, id, job_no };
-        
-        // Add to currentRecords so next records in bulk get incremented number
-        currentRecords.push(data);
-        
+
         await client.query(
           'INSERT INTO records (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = $2',
           [id, data]
@@ -267,23 +293,16 @@ export async function bulkCreateRecords(records) {
     }
     return getAllRecords();
   } else {
-    return withLocalLock(async () => {
-      const allRecords = await getAllRecords();
-      let currentRecords = [...allRecords];
+    for (const record of records) {
+      const id = record.id || Date.now();
+      const job_no = generateJobNumberSqlite(record);
+      const data = { ...record, id, job_no };
 
-      for (const record of records) {
-        const id = record.id || Date.now();
-        const job_no = generateJobNumber(record, currentRecords);
-        const data = { ...record, id, job_no };
-
-        currentRecords.push(data);
-
-        const jsonData = JSON.stringify(data);
-        db.run('INSERT OR REPLACE INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
-      }
-      persist();
-      return getAllRecords();
-    });
+      const jsonData = JSON.stringify(data);
+      db.run('INSERT OR REPLACE INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
+    }
+    persist();
+    return getAllRecords();
   }
 }
 

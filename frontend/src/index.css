@@ -1520,6 +1520,19 @@ body {
   background: #1e8449;
 }
 
+.pv-btn-back:disabled,
+.pv-btn-save:disabled,
+.pv-bottom-back:disabled,
+.pv-bottom-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pv-btn-save:disabled:hover,
+.pv-bottom-save:disabled:hover {
+  background: #27ae60;
+}
+
 .pv-body {
   flex: 1;
   padding: 20px;

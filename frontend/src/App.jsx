@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
 import TabBar from './components/TabBar';
@@ -116,6 +116,12 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [showHome, setShowHome] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  // `isSaving` (state) drives the UI; this ref is the actual guard. State
+  // updates are batched/async, so two clicks fired in the same tick can both
+  // still read a stale isSaving=false before React re-renders — the ref
+  // mutates synchronously, so the second call sees it immediately.
+  const isSavingRef = useRef(false);
 
   const showToast = (message, type = 'success') => {
     const id = Date.now();
@@ -212,7 +218,9 @@ export default function App() {
   };
 
   const handleConfirmSave = async () => {
-    if (!previewData) return;
+    if (!previewData || isSavingRef.current) return;
+    isSavingRef.current = true;
+    setIsSaving(true);
 
     try {
       if (editingId) {
@@ -241,6 +249,9 @@ export default function App() {
     } catch (err) {
       console.error(err);
       showToast(withDetail('บันทึกไม่สำเร็จ', err), 'err');
+    } finally {
+      isSavingRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -396,6 +407,7 @@ export default function App() {
             isOpen={isPreviewOpen}
             onClose={() => setIsPreviewOpen(false)}
             onConfirm={handleConfirmSave}
+            isSaving={isSaving}
           />
         </>
       )}
