@@ -74,17 +74,22 @@ export default function SearchableSelect({
   useLayoutEffect(() => {
     if (!isOpen) return;
     positionMenu();
-    const handleReposition = (e) => {
+    const handleScroll = (e) => {
       // Ignore scrolling inside the menu itself (e.g. mouse-wheel through
       // a long options list) — only close when an ancestor/the page scrolls.
       if (menuRef.current && menuRef.current.contains(e.target)) return;
       closeDropdown();
     };
-    window.addEventListener('scroll', handleReposition, true);
-    window.addEventListener('resize', handleReposition);
+    // Resize alone should NOT close the dropdown — on touch devices, opening
+    // the on-screen keyboard to type fires a resize event, and closing here
+    // would silently discard whatever the user had just typed. Just move
+    // the menu to match the new layout instead.
+    const handleResize = () => positionMenu();
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
     return () => {
-      window.removeEventListener('scroll', handleReposition, true);
-      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
