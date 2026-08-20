@@ -66,6 +66,11 @@ export default function SearchableSelect({
   const openDropdown = () => {
     if (disabled) return;
     clearTimeout(closeTimer.current);
+    // Guard against a redundant focus event re-firing while already open
+    // (e.g. the browser auto-scrolling/refocusing the input to keep the
+    // caret visible once typed text overflows its width) — that must not
+    // wipe out whatever the user has already typed.
+    if (isOpen) return;
     setQuery('');
     setHighlight(0);
     setIsOpen(true);
