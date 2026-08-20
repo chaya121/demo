@@ -132,7 +132,23 @@ export default function SearchableSelect({
   };
 
   const handleBlur = () => {
-    closeTimer.current = setTimeout(closeDropdown, 150);
+    // Clicking an option is handled via onMouseDown={preventDefault} on the
+    // menu so it never reaches here. A real blur (click elsewhere, tab away)
+    // must not silently throw away text the user already typed — commit it
+    // (matching what Enter would do) instead of resetting to empty.
+    closeTimer.current = setTimeout(() => {
+      if (trimmedQuery) {
+        if (highlight < filtered.length && filtered[highlight] !== undefined) {
+          commit(filtered[highlight]);
+        } else if (allowCustom) {
+          commit(trimmedQuery);
+        } else {
+          closeDropdown();
+        }
+      } else {
+        closeDropdown();
+      }
+    }, 150);
   };
 
   return (
