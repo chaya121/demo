@@ -1,8 +1,9 @@
 import React from 'react';
 
-export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSaving }) {
+export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSaving, mode = 'confirm', onDownloadPdf }) {
   if (!isOpen || !data) return null;
 
+  const isView = mode === 'view';
   const safeClose = () => { if (!isSaving) onClose(); };
 
   const esc = (s) => s || '-';
@@ -68,11 +69,17 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSavin
     <div className="pv-overlay" onClick={(e) => e.target === e.currentTarget && safeClose()}>
       <div className="pv-sheet">
         <div className="pv-topbar">
-          <button className="pv-btn-back" onClick={safeClose} disabled={isSaving}>← กลับแก้ไข</button>
-          <span className="pv-topbar-title">ตรวจสอบใบดี</span>
-          <button className="pv-btn-save" onClick={onConfirm} disabled={isSaving}>
-            {isSaving ? '⏳ กำลังบันทึก...' : '💾 ยืนยันบันทึก'}
+          <button className="pv-btn-back" onClick={safeClose} disabled={isSaving}>
+            {isView ? '✕ ปิด' : '← กลับแก้ไข'}
           </button>
+          <span className="pv-topbar-title">{isView ? 'ดูรายละเอียดใบดี' : 'ตรวจสอบใบดี'}</span>
+          {isView ? (
+            <button className="pv-btn-save" onClick={onDownloadPdf}>📄 ดาวน์โหลด PDF</button>
+          ) : (
+            <button className="pv-btn-save" onClick={onConfirm} disabled={isSaving}>
+              {isSaving ? '⏳ กำลังบันทึก...' : '💾 ยืนยันบันทึก'}
+            </button>
+          )}
         </div>
 
         <div className="pv-body">
@@ -316,10 +323,16 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSavin
         </div>
 
         <div className="pv-bottom">
-          <button className="pv-bottom-back" onClick={safeClose} disabled={isSaving}>← กลับแก้ไข</button>
-          <button className="pv-bottom-save" onClick={onConfirm} disabled={isSaving}>
-            {isSaving ? '⏳ กำลังบันทึก...' : '💾 ยืนยันบันทึกใบดี'}
+          <button className="pv-bottom-back" onClick={safeClose} disabled={isSaving}>
+            {isView ? '✕ ปิด' : '← กลับแก้ไข'}
           </button>
+          {isView ? (
+            <button className="pv-bottom-save" onClick={onDownloadPdf}>📄 ดาวน์โหลด PDF</button>
+          ) : (
+            <button className="pv-bottom-save" onClick={onConfirm} disabled={isSaving}>
+              {isSaving ? '⏳ กำลังบันทึก...' : '💾 ยืนยันบันทึกใบดี'}
+            </button>
+          )}
         </div>
       </div>
     </div>

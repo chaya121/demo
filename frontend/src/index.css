@@ -1176,6 +1176,11 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  transition: var(--transition);
+}
+
+.rec-hdr:hover {
+  background: var(--tan);
 }
 
 .rec-title {

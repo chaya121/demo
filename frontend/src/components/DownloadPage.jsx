@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { generatePDF } from '../utils/pdfGenerator';
 import { api } from '../api/client';
 import SearchableSelect from './SearchableSelect';
+import PreviewModal from './PreviewModal';
 
 function formatDispDate(dateStr) {
   if (!dateStr) return '';
@@ -17,6 +18,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   const [filterBrand, setFilterBrand] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  const [viewingRecord, setViewingRecord] = useState(null);
 
   const uniqueCustomers = useMemo(() => {
     const customers = [...new Set(records.map(r => r.customer).filter(Boolean))];
@@ -81,6 +83,20 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
     if (window.confirm('คุณต้องการลบรายการนี้หรือไม่?')) {
       onDelete(id);
     }
+  };
+
+  const handleViewRecord = async (record) => {
+    // Same reasoning as handlePdfDownload: the list omits `imgs`, so fetch
+    // the full record before showing it in the read-only preview.
+    let full = record;
+    try {
+      const fetched = await api.getRecord(record.id);
+      if (fetched) full = fetched;
+    } catch (err) {
+      console.error(err);
+      showToast(withDetail('โหลดรูปภาพไม่สำเร็จ ข้อมูลอื่นยังดูได้ปกติ', err), 'err');
+    }
+    setViewingRecord({ ...full, dispDate: full.dispDate || formatDispDate(full.date) });
   };
 
   const handleExcelExport = async () => {
@@ -389,7 +405,12 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
                 key={r.id || i}
                 style={isOverbudget ? { backgroundColor: '#FFBCBC', borderColor: '#ff9999' } : {}}
               >
-                <div className="rec-hdr">
+                <div
+                  className="rec-hdr"
+                  onClick={() => handleViewRecord(r)}
+                  style={{ cursor: 'pointer' }}
+                  title="ดูรายละเอียดใบดี"
+                >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="rec-title">{title}</div>
                     <div className="rec-sub">
@@ -438,6 +459,14 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
           <p>{records.length === 0 ? 'ยังไม่มีบันทึกใบขั้นตอนการผลิต<br />กรุณากรอกและบันทึกก่อน' : 'ไม่พบข้อมูลที่ตรงกับเงื่อนไขการกรอง'}</p>
         </div>
       )}
+
+      <PreviewModal
+        data={viewingRecord}
+        isOpen={!!viewingRecord}
+        onClose={() => setViewingRecord(null)}
+        mode="view"
+        onDownloadPdf={() => viewingRecord && handlePdfDownload(viewingRecord)}
+      />
     </div>
   );
 }
