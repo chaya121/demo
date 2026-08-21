@@ -76,27 +76,35 @@ export default function SearchableSelect({
     setIsOpen(true);
   };
 
-  const commit = (val) => {
-    onChange(val);
+  // addToMaster tells the caller whether this value should be written into
+  // the shared master list/database (true for an explicit choice — clicking
+  // an option, pressing Enter, clicking "+ เพิ่ม") or kept only on this one
+  // field/row without touching master data (false — see commitOrClose below).
+  const commit = (val, addToMaster = true) => {
+    onChange(val, addToMaster);
     closeDropdown();
   };
 
   // Used by both blur and page-scroll below. If what's typed already matches
   // an existing option, select it — that's just finishing a filter, not data
-  // entry, so it's safe to commit automatically. Brand-new custom text is
-  // deliberately NOT auto-committed here: committing it would call onChange,
-  // which adds it as a new master-list item straight into the database.
-  // Saving to the database must stay an explicit action (Enter, or clicking
-  // the "+ เพิ่ม" option) — losing focus by accident must not silently write
-  // a stray/typo value into shared master data.
+  // entry. Brand-new custom text (not confirmed via Enter/"+ เพิ่ม") is still
+  // kept as this field's value so it doesn't look lost on an accidental
+  // click-away or scroll, but committed with addToMaster=false so it does
+  // NOT get written into the shared master list/database — that must stay
+  // an explicit action. Fields that don't allow custom values at all
+  // (allowCustom=false, e.g. filter dropdowns) never soft-commit typed text.
   // Kept in a ref (refreshed every render) rather than as a useLayoutEffect
   // dependency, because the scroll/resize listeners below are only
   // re-subscribed when `isOpen` changes; if they closed over `highlight`/
   // `filtered` directly they'd keep seeing stale values from when the
   // dropdown first opened, not what's current.
   const commitOrClose = () => {
-    if (trimmedQuery && highlight < filtered.length && filtered[highlight] !== undefined) {
+    if (!trimmedQuery) {
+      closeDropdown();
+    } else if (highlight < filtered.length && filtered[highlight] !== undefined) {
       commit(filtered[highlight]);
+    } else if (allowCustom) {
+      commit(trimmedQuery, false);
     } else {
       closeDropdown();
     }

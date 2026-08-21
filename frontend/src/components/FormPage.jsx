@@ -112,9 +112,9 @@ export default function FormPage({
     });
   };
 
-  const handleStepSelectChange = (idx, field, val, list, masterType) => {
+  const handleStepSelectChange = (idx, field, val, list, masterType, addToMaster = true) => {
     updateStepField(idx, field, val);
-    if (val && !list.includes(val)) {
+    if (addToMaster && val && !list.includes(val)) {
       onAddMasterItem(masterType, val);
     }
   };
@@ -148,9 +148,9 @@ export default function FormPage({
   const machineBreakdown = getMachineBreakdown(formState.steps);
   const totalMachines = getTotalMachines(formState.steps);
 
-  const handleDropdownChange = (field, val, masterType) => {
+  const handleDropdownChange = (field, val, masterType, addToMaster = true) => {
     handleFieldChange(field, val);
-    if (val && !(masterLists[masterType] || []).includes(val)) {
+    if (addToMaster && val && !(masterLists[masterType] || []).includes(val)) {
       onAddMasterItem(masterType, val);
     }
   };
@@ -159,7 +159,7 @@ export default function FormPage({
     <SearchableSelect
       options={list}
       value={value}
-      onChange={(val) => handleStepSelectChange(idx, field, val, list, masterType)}
+      onChange={(val, addToMaster) => handleStepSelectChange(idx, field, val, list, masterType, addToMaster)}
     />
   );
 
@@ -194,7 +194,7 @@ export default function FormPage({
                 options={masterLists.mers || []}
                 value={formState.merText}
                 placeholder="-- เลือก Mer --"
-                onChange={(val) => handleDropdownChange('merText', val, 'mers')}
+                onChange={(val, addToMaster) => handleDropdownChange('merText', val, 'mers', addToMaster)}
               />
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function FormPage({
                 options={masterLists.brands || []}
                 value={formState.brand}
                 placeholder="-- เลือกแบรนด์ --"
-                onChange={(val) => handleDropdownChange('brand', val, 'brands')}
+                onChange={(val, addToMaster) => handleDropdownChange('brand', val, 'brands', addToMaster)}
               />
             </div>
             <div className="frow">
@@ -242,7 +242,7 @@ export default function FormPage({
                 options={masterLists.clothingTypes || []}
                 value={formState.clothingType || ''}
                 placeholder="-- เลือกประเภท --"
-                onChange={(val) => handleDropdownChange('clothingType', val, 'clothingTypes')}
+                onChange={(val, addToMaster) => handleDropdownChange('clothingType', val, 'clothingTypes', addToMaster)}
               />
             </div>
           </div>
