@@ -81,21 +81,22 @@ export default function SearchableSelect({
     closeDropdown();
   };
 
-  // Commit whatever the user has typed instead of silently throwing it away —
-  // used by both blur and page-scroll below. Kept in a ref (refreshed every
-  // render) rather than as a useLayoutEffect dependency, because the scroll/
-  // resize listeners below are only re-subscribed when `isOpen` changes; if
-  // they closed over `trimmedQuery` directly they'd keep seeing the empty
-  // string from when the dropdown first opened, not what's been typed since.
+  // Used by both blur and page-scroll below. If what's typed already matches
+  // an existing option, select it — that's just finishing a filter, not data
+  // entry, so it's safe to commit automatically. Brand-new custom text is
+  // deliberately NOT auto-committed here: committing it would call onChange,
+  // which adds it as a new master-list item straight into the database.
+  // Saving to the database must stay an explicit action (Enter, or clicking
+  // the "+ เพิ่ม" option) — losing focus by accident must not silently write
+  // a stray/typo value into shared master data.
+  // Kept in a ref (refreshed every render) rather than as a useLayoutEffect
+  // dependency, because the scroll/resize listeners below are only
+  // re-subscribed when `isOpen` changes; if they closed over `highlight`/
+  // `filtered` directly they'd keep seeing stale values from when the
+  // dropdown first opened, not what's current.
   const commitOrClose = () => {
-    if (trimmedQuery) {
-      if (highlight < filtered.length && filtered[highlight] !== undefined) {
-        commit(filtered[highlight]);
-      } else if (allowCustom) {
-        commit(trimmedQuery);
-      } else {
-        closeDropdown();
-      }
+    if (trimmedQuery && highlight < filtered.length && filtered[highlight] !== undefined) {
+      commit(filtered[highlight]);
     } else {
       closeDropdown();
     }
