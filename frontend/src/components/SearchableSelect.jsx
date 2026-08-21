@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useLayoutEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 function sortThaiFirst(arr) {
@@ -111,6 +111,12 @@ export default function SearchableSelect({
   };
   const commitOrCloseRef = useRef(commitOrClose);
   commitOrCloseRef.current = commitOrClose;
+
+  // handleBlur schedules commitOrCloseRef 150ms out (see below). If the row
+  // this field belongs to gets deleted (e.g. "✕ ลบแถว") while that timer is
+  // still pending, the callback would otherwise fire after unmount and try
+  // to setState on a gone component — cancel it on unmount instead.
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   useLayoutEffect(() => {
     if (!isOpen) return;
