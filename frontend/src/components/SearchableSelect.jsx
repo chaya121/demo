@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export function sortThaiFirst(arr) {
+function sortThaiFirst(arr) {
   const isThai = s => /^[฀-๿]/.test(s || '');
   const thai = arr.filter(isThai).sort((a, b) => a.localeCompare(b, 'th'));
   const eng = arr.filter(s => !isThai(s)).sort((a, b) => a.localeCompare(b, 'en'));
@@ -76,6 +76,33 @@ export default function SearchableSelect({
     setIsOpen(true);
   };
 
+  const commit = (val) => {
+    onChange(val);
+    closeDropdown();
+  };
+
+  // Commit whatever the user has typed instead of silently throwing it away —
+  // used by both blur and page-scroll below. Kept in a ref (refreshed every
+  // render) rather than as a useLayoutEffect dependency, because the scroll/
+  // resize listeners below are only re-subscribed when `isOpen` changes; if
+  // they closed over `trimmedQuery` directly they'd keep seeing the empty
+  // string from when the dropdown first opened, not what's been typed since.
+  const commitOrClose = () => {
+    if (trimmedQuery) {
+      if (highlight < filtered.length && filtered[highlight] !== undefined) {
+        commit(filtered[highlight]);
+      } else if (allowCustom) {
+        commit(trimmedQuery);
+      } else {
+        closeDropdown();
+      }
+    } else {
+      closeDropdown();
+    }
+  };
+  const commitOrCloseRef = useRef(commitOrClose);
+  commitOrCloseRef.current = commitOrClose;
+
   useLayoutEffect(() => {
     if (!isOpen) return;
     positionMenu();
@@ -83,7 +110,7 @@ export default function SearchableSelect({
       // Ignore scrolling inside the menu itself (e.g. mouse-wheel through
       // a long options list) — only close when an ancestor/the page scrolls.
       if (menuRef.current && menuRef.current.contains(e.target)) return;
-      closeDropdown();
+      commitOrCloseRef.current();
     };
     // Resize alone should NOT close the dropdown — on touch devices, opening
     // the on-screen keyboard to type fires a resize event, and closing here
@@ -98,11 +125,6 @@ export default function SearchableSelect({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
-
-  const commit = (val) => {
-    onChange(val);
-    closeDropdown();
-  };
 
   const handleKeyDown = (e) => {
     if (!isOpen) {
@@ -136,19 +158,7 @@ export default function SearchableSelect({
     // menu so it never reaches here. A real blur (click elsewhere, tab away)
     // must not silently throw away text the user already typed — commit it
     // (matching what Enter would do) instead of resetting to empty.
-    closeTimer.current = setTimeout(() => {
-      if (trimmedQuery) {
-        if (highlight < filtered.length && filtered[highlight] !== undefined) {
-          commit(filtered[highlight]);
-        } else if (allowCustom) {
-          commit(trimmedQuery);
-        } else {
-          closeDropdown();
-        }
-      } else {
-        closeDropdown();
-      }
-    }, 150);
+    closeTimer.current = setTimeout(() => commitOrCloseRef.current(), 150);
   };
 
   return (
