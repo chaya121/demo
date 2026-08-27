@@ -29,16 +29,24 @@ export default function SearchableSelect({
   const menuRef = useRef(null);
   const closeTimer = useRef(null);
 
-  const sortedOptions = useMemo(() => {
-    const base = value && !options.includes(value) ? [value, ...options] : options;
-    return sortThaiFirst(base);
-  }, [options, value]);
+  const sortedOptions = useMemo(() => sortThaiFirst(options), [options]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return sortedOptions;
+    if (!q) {
+      // Nothing typed yet — pin the field's current value at the top even
+      // if it's a one-off custom value not in the master list, so it stays
+      // visible/selectable/clearable right when the dropdown opens.
+      return value && !options.includes(value) ? [value, ...sortedOptions] : sortedOptions;
+    }
+    // Once the user types anything, only match against the real master
+    // list. Do NOT also match against the old current `value` here: while
+    // mid-edit of a previously-typed custom value, that old (longer/full)
+    // string would otherwise keep surfacing as a confusingly similar but
+    // different entry in the list, even though the user is actively typing
+    // something else.
     return sortedOptions.filter(o => o.toLowerCase().includes(q));
-  }, [sortedOptions, query]);
+  }, [sortedOptions, query, value, options]);
 
   const trimmedQuery = query.trim();
   const exactMatch = filtered.some(o => o.toLowerCase() === trimmedQuery.toLowerCase());
