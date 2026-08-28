@@ -732,15 +732,26 @@ export default function FormPage({
               </div>
               <div className="af">
                 <label style={{ fontSize: '14px' }}>ตัว/ชั่วโมง</label>
-                <input 
-                  type="number" 
-                  className="ainput" 
+                <input
+                  type="number"
+                  className="ainput"
                   min="0"
                   style={{ fontSize: '14px' }}
                   value={formState.actual.rate}
                   onChange={(e) => handleActualChange('rate', e.target.value)}
                 />
                 <div className="anote" style={{ fontSize: '12px' }}>*เฉลี่ยจบตัว*</div>
+              </div>
+              <div className="af">
+                <label style={{ fontSize: '14px' }}>ตัว/วัน</label>
+                <input
+                  type="number"
+                  className="ainput"
+                  min="0"
+                  style={{ fontSize: '14px' }}
+                  value={formState.actual.perDay}
+                  onChange={(e) => handleActualChange('perDay', e.target.value)}
+                />
               </div>
               <div className="af">
                 <label style={{ fontSize: '14px' }}>ค่าแรงเย็บจริง</label>

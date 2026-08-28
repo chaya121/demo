@@ -99,6 +99,7 @@ const createEmptyFormState = () => ({
     sewers: '',
     days: '',
     rate: '',
+    perDay: '',
     wage: '',
     total: '',
     remark: ''
@@ -344,6 +345,7 @@ export default function App() {
         sewers: r.actual?.sewers || '',
         days: r.actual?.days || '',
         rate: r.actual?.rate || '',
+        perDay: r.actual?.perDay || '',
         wage: r.actual?.wage || '',
         total: r.actual?.total || '',
         remark: r.actual?.remark || ''

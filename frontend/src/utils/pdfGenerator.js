@@ -556,6 +556,7 @@ export function generatePDF(record, onStart, onSuccess, onError) {
                 <div class="pv-field wide"><span class="pv-flabel">จบ :</span>${tf(formatDateTime(record.actual?.end))}</div>
                 <div class="pv-field wide"><span class="pv-flabel">คนเย็บ/เวลา :</span><div class="pv-fval">${record.actual?.sewers || '-'} คน · ใช้เวลา ${record.actual?.days || '-'} วัน</div></div>
                 <div class="pv-field wide"><span class="pv-flabel">ตัว/ชั่วโมง :</span><div class="pv-fval">${record.actual?.rate || '-'} <span class="pv-unit">ตัว (เฉลี่ยจบตัว)</span></div></div>
+                <div class="pv-field wide"><span class="pv-flabel">ตัว/วัน :</span><div class="pv-fval">${record.actual?.perDay || '-'} <span class="pv-unit">ตัว</span></div></div>
                 <div class="pv-field wide"><span class="pv-flabel">ค่าแรงจริง :</span><div class="pv-fval">${record.actual?.wage || '-'} <span class="pv-unit">บาท (ไม่รวม ตัด QC รีด แฟ็ก)</span></div></div>
                 <div class="pv-field wide"><span class="pv-flabel">ประเมินทุน :</span><div class="pv-fval">${record.actual?.total || '-'} <span class="pv-unit">บาท</span></div></div>
                 <div class="pv-field wide" style="flex-direction: column; align-items: flex-start;">

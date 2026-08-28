@@ -303,6 +303,10 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSavin
                     <div className="pv-fval">{data.actual?.rate || '-'} <span className="pv-unit">ตัว (เฉลี่ยจบตัว)</span></div>
                   </div>
                   <div className="pv-field wide">
+                    <span className="pv-flabel">ตัว/วัน :</span>
+                    <div className="pv-fval">{data.actual?.perDay || '-'} <span className="pv-unit">ตัว</span></div>
+                  </div>
+                  <div className="pv-field wide">
                     <span className="pv-flabel">ค่าแรงจริง :</span>
                     <div className="pv-fval">{data.actual?.wage || '-'} <span className="pv-unit">บาท (ไม่รวม ตัด QC รีด แฟ็ก)</span></div>
                   </div>
