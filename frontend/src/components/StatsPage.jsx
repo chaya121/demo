@@ -23,29 +23,12 @@ export default function StatsPage({ records }) {
   }, [records]);
 
   const availableBrands = useMemo(() => {
-    if (!filterCustomer) {
-      const brands = new Set();
-      records.forEach(r => {
-        if (r.brand) brands.add(r.brand);
-      });
-      return Array.from(brands).sort((a, b) => a.localeCompare(b, 'th'));
-    } else {
-      const brands = new Set();
-      records.forEach(r => {
-        if (r.customer === filterCustomer && r.brand) brands.add(r.brand);
-      });
-      return Array.from(brands).sort((a, b) => a.localeCompare(b, 'th'));
-    }
-  }, [records, filterCustomer]);
-
-  const handleCustomerChange = (value) => {
-    setFilterCustomer(value);
-    setFilterBrand('');
-  };
-
-  const handleMerChange = (value) => {
-    setFilterMer(value);
-  };
+    const brands = new Set();
+    records.forEach(r => {
+      if (r.brand) brands.add(r.brand);
+    });
+    return Array.from(brands).sort((a, b) => a.localeCompare(b, 'th'));
+  }, [records]);
 
   const stats = useMemo(() => {
     const filteredRecords = records.filter(r => {
@@ -132,7 +115,7 @@ export default function StatsPage({ records }) {
               options={uniqueCustomers}
               value={filterCustomer}
               placeholder="ทั้งหมด"
-              onChange={handleCustomerChange}
+              onChange={setFilterCustomer}
             />
           </div>
           <div>
@@ -141,7 +124,6 @@ export default function StatsPage({ records }) {
               className="ssel-filter-lg"
               allowCustom={false}
               clearLabel="ทั้งหมด"
-              disabled={!filterCustomer}
               options={availableBrands}
               value={filterBrand}
               placeholder="ทั้งหมด"
@@ -157,7 +139,7 @@ export default function StatsPage({ records }) {
               options={uniqueMers}
               value={filterMer}
               placeholder="ทั้งหมด"
-              onChange={handleMerChange}
+              onChange={setFilterMer}
             />
           </div>
         </div>

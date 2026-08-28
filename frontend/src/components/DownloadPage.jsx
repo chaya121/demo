@@ -26,18 +26,9 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   }, [records]);
 
   const uniqueBrands = useMemo(() => {
-    if (filterCustomer) {
-      const brands = [...new Set(records.filter(r => r.customer === filterCustomer).map(r => r.brand).filter(Boolean))];
-      return brands.sort((a, b) => a.localeCompare(b, 'th'));
-    }
     const brands = [...new Set(records.map(r => r.brand).filter(Boolean))];
     return brands.sort((a, b) => a.localeCompare(b, 'th'));
-  }, [records, filterCustomer]);
-
-  const handleCustomerChange = (value) => {
-    setFilterCustomer(value);
-    setFilterBrand('');
-  };
+  }, [records]);
 
   const filteredRecords = useMemo(() => {
     return records
@@ -304,7 +295,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
               options={uniqueCustomers}
               value={filterCustomer}
               placeholder="ทั้งหมด"
-              onChange={handleCustomerChange}
+              onChange={setFilterCustomer}
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -313,7 +304,6 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
               className="ssel-filter"
               allowCustom={false}
               clearLabel="ทั้งหมด"
-              disabled={!filterCustomer}
               options={uniqueBrands}
               value={filterBrand}
               placeholder="ทั้งหมด"
