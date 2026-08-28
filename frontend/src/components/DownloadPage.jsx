@@ -20,15 +20,21 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [viewingRecord, setViewingRecord] = useState(null);
 
+  // Each dropdown's choices narrow to whatever the *other* filter still
+  // allows (e.g. picking brand "E" leaves only the customers who actually
+  // have an "E" record), without ever disabling either field — you can
+  // still start from whichever one you like.
   const uniqueCustomers = useMemo(() => {
-    const customers = [...new Set(records.map(r => r.customer).filter(Boolean))];
+    const pool = filterBrand ? records.filter(r => r.brand === filterBrand) : records;
+    const customers = [...new Set(pool.map(r => r.customer).filter(Boolean))];
     return customers.sort((a, b) => a.localeCompare(b, 'th'));
-  }, [records]);
+  }, [records, filterBrand]);
 
   const uniqueBrands = useMemo(() => {
-    const brands = [...new Set(records.map(r => r.brand).filter(Boolean))];
+    const pool = filterCustomer ? records.filter(r => r.customer === filterCustomer) : records;
+    const brands = [...new Set(pool.map(r => r.brand).filter(Boolean))];
     return brands.sort((a, b) => a.localeCompare(b, 'th'));
-  }, [records]);
+  }, [records, filterCustomer]);
 
   const filteredRecords = useMemo(() => {
     return records

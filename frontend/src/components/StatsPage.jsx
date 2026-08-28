@@ -6,29 +6,39 @@ export default function StatsPage({ records }) {
   const [filterBrand, setFilterBrand] = useState('');
   const [filterMer, setFilterMer] = useState('');
 
+  // Each dropdown's choices narrow to whatever the *other two* filters
+  // still allow (e.g. picking brand "E" leaves only the customers who
+  // actually have an "E" record), without ever disabling a field — you
+  // can still start from whichever one you like.
   const uniqueCustomers = useMemo(() => {
     const customers = new Set();
     records.forEach(r => {
-      if (r.customer) customers.add(r.customer);
+      if (r.customer && (!filterBrand || r.brand === filterBrand) && (!filterMer || r.merText === filterMer)) {
+        customers.add(r.customer);
+      }
     });
     return Array.from(customers).sort((a, b) => a.localeCompare(b, 'th'));
-  }, [records]);
+  }, [records, filterBrand, filterMer]);
 
   const uniqueMers = useMemo(() => {
     const mers = new Set();
     records.forEach(r => {
-      if (r.merText) mers.add(r.merText);
+      if (r.merText && (!filterCustomer || r.customer === filterCustomer) && (!filterBrand || r.brand === filterBrand)) {
+        mers.add(r.merText);
+      }
     });
     return Array.from(mers).sort((a, b) => a.localeCompare(b, 'th'));
-  }, [records]);
+  }, [records, filterCustomer, filterBrand]);
 
   const availableBrands = useMemo(() => {
     const brands = new Set();
     records.forEach(r => {
-      if (r.brand) brands.add(r.brand);
+      if (r.brand && (!filterCustomer || r.customer === filterCustomer) && (!filterMer || r.merText === filterMer)) {
+        brands.add(r.brand);
+      }
     });
     return Array.from(brands).sort((a, b) => a.localeCompare(b, 'th'));
-  }, [records]);
+  }, [records, filterCustomer, filterMer]);
 
   const stats = useMemo(() => {
     const filteredRecords = records.filter(r => {
