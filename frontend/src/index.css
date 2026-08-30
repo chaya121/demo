@@ -1269,6 +1269,84 @@ body {
   color: var(--brand);
 }
 
+/* ── Records table (list view, replaces the old rec-card stack) ── */
+.rec-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+}
+
+.rec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+.rec-table td {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.rec-table th {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  padding: 10px 8px;
+  position: sticky;
+  top: 0;
+}
+
+.rec-table td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.rec-table tbody tr:hover {
+  background: var(--tan-lt);
+}
+
+.tbl-btn {
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 6px 14px;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tbl-edit {
+  background: #f5d90a;
+  color: #5c4d00;
+}
+
+.tbl-edit:hover {
+  background: #e0c700;
+}
+
+.tbl-view {
+  background: #7bd88f;
+  color: #0d4d1e;
+}
+
+.tbl-view:hover {
+  background: #5fc978;
+}
+
+.tbl-delete {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.tbl-delete:hover {
+  background: #c0392b;
+}
+
 /* ── Stats ── */
 .stat-hdr {
   background: var(--primary);

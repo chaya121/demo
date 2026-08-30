@@ -11,14 +11,35 @@ function formatDispDate(dateStr) {
   return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+// Compact "31-ก.ค.-2026" table date, distinct from formatDispDate's long form
+// used in the PDF/preview.
+function formatTableDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '-';
+  return `${String(d.getDate()).padStart(2, '0')}-${THAI_MONTHS_SHORT[d.getMonth()]}-${d.getFullYear()}`;
+}
+
 const withDetail = (prefix, err) => (err?.message ? `${prefix}: ${err.message}` : prefix);
 
 export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
   const [filterCustomer, setFilterCustomer] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const [filterYear, setFilterYear] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [viewingRecord, setViewingRecord] = useState(null);
+
+  const uniqueYears = useMemo(() => {
+    const years = new Set();
+    records.forEach(r => {
+      const d = r.date ? new Date(r.date) : null;
+      if (d && !isNaN(d)) years.add(String(d.getFullYear()));
+    });
+    return [...years].sort((a, b) => b - a);
+  }, [records]);
 
   // Each dropdown's choices narrow to whatever the *other* filter still
   // allows (e.g. picking brand "E" leaves only the customers who actually
@@ -41,10 +62,12 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
       .filter(r => {
         const matchCustomer = !filterCustomer || r.customer === filterCustomer;
         const matchBrand = !filterBrand || r.brand === filterBrand;
+        const d = r.date ? new Date(r.date) : null;
+        const matchYear = !filterYear || (d && !isNaN(d) && String(d.getFullYear()) === filterYear);
         const shipDate = r.shipDate || '';
         const matchFrom = !filterDateFrom || shipDate >= filterDateFrom;
         const matchTo = !filterDateTo || shipDate <= filterDateTo;
-        return matchCustomer && matchBrand && matchFrom && matchTo;
+        return matchCustomer && matchBrand && matchYear && matchFrom && matchTo;
       })
       .sort((a, b) => {
         const da = a.shipDate || '';
@@ -54,7 +77,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
         if (!db) return -1;
         return da < db ? -1 : da > db ? 1 : 0;
       });
-  }, [records, filterCustomer, filterBrand, filterDateFrom, filterDateTo]);
+  }, [records, filterCustomer, filterBrand, filterYear, filterDateFrom, filterDateTo]);
   const handlePdfDownload = async (record) => {
     // The list omits `imgs` to keep the initial load light; fetch the full
     // record (with images) now that this specific job is being printed.
@@ -316,6 +339,18 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
               onChange={setFilterBrand}
             />
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--muted)' }}>กรองปี:</span>
+            <SearchableSelect
+              className="ssel-filter"
+              allowCustom={false}
+              clearLabel="ทั้งหมด"
+              options={uniqueYears}
+              value={filterYear}
+              placeholder="ทั้งหมด"
+              onChange={setFilterYear}
+            />
+          </div>
         </div>
 
         {/* Shipment Date Filter */}
@@ -383,71 +418,52 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
       </div>
 
       {filteredRecords.length > 0 ? (
-        <div id="downloadList">
-          {filteredRecords.map((r, i) => {
-            const steps = r.steps || [];
-            const totalSteps = steps.length;
-            const title = (r.job_no ? `[${r.job_no}] ` : '') + (r.model || r.brand || r.customer || '(ไม่ระบุ)');
-            const dateStr = r.dispDate || formatDispDate(r.date) || 'ไม่ระบุวันที่';
-            const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
+        <div className="rec-table-wrap">
+          <table className="rec-table">
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>เมอร์</th>
+                <th>ยี่ห้อ</th>
+                <th>ลูกค้า</th>
+                <th>ประเภท</th>
+                <th>ชื่อรุ่น</th>
+                <th>จำนวนผลิต</th>
+                <th></th>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRecords.map((r, i) => {
+                const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
+                const estWageNum = parseFloat(r.estWage);
+                const actualWageNum = parseFloat(r.actual?.wage);
+                const isOverbudget = !isNaN(estWageNum) && !isNaN(actualWageNum) && actualWageNum > estWageNum;
 
-            const estWageNum = parseFloat(r.estWage);
-            const actualWageNum = parseFloat(r.actual?.wage);
-            const isOverbudget = !isNaN(estWageNum) && !isNaN(actualWageNum) && actualWageNum > estWageNum;
-
-            return (
-              <div 
-                className="rec-card" 
-                key={r.id || i}
-                style={isOverbudget ? { backgroundColor: '#FFBCBC', borderColor: '#ff9999' } : {}}
-              >
-                <div
-                  className="rec-hdr"
-                  onClick={() => handleViewRecord(r)}
-                  style={{ cursor: 'pointer' }}
-                  title="ดูรายละเอียดใบดี"
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="rec-title">{title}</div>
-                    <div className="rec-sub">
-                      ลูกค้า: {r.customer || '-'} · แบรนด์: {r.brand || '-'}<br />
-                      ราคาประมาณ: {r.estWage ? `${parseFloat(r.estWage).toLocaleString()} บาท` : '-'} · ราคาจริง: {r.actual?.wage ? `${parseFloat(r.actual.wage).toLocaleString()} บาท` : '-'}
-                    </div>
-                    <div className="rec-sub" style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                      {dateStr} · เมอร์: {merStr} · จำนวน: {r.qty || 0} · สี: {r.colors || 0}
-                      {r.shipDate && (
-                        <span style={{ color: '#2980b9', fontWeight: '600', marginLeft: '6px' }}>
-                          · 🚢 Ship: {new Date(r.shipDate + 'T00:00:00').toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                      )}
-                      {r.hasImages && <span title="มีรูปแนบ"> · 📷</span>}
-                    </div>
-                  </div>
-                  <div className="rec-badge">
-                    <span className="bn">{totalSteps}</span>
-                    <span className="bl">ขั้นตอน</span>
-                  </div>
-                </div>
-                <div className="rec-body">
-                  <button className="btn-pdf" onClick={() => handlePdfDownload(r)}>
-                    📄 ดาวน์โหลด PDF
-                  </button>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    <button className="btn-del" style={{ flex: 1 }} onClick={() => confirmDelete(r.id)}>
-                      🗑 ลบ
-                    </button>
-                    <button 
-                      className="btn-del" 
-                      style={{ flex: 1, borderColor: '#a0bcd0', color: '#1a5276' }} 
-                      onClick={() => onLoad(r.id)}
-                    >
-                      ✏️ แก้ไขข้อมูล
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                return (
+                  <tr key={r.id || i} style={isOverbudget ? { backgroundColor: '#FFBCBC' } : {}}>
+                    <td>{formatTableDate(r.date)}</td>
+                    <td>{merStr}</td>
+                    <td>{r.brand || '-'}</td>
+                    <td>{r.customer || '-'}</td>
+                    <td>{r.clothingType || '-'}</td>
+                    <td>{r.model || '-'}</td>
+                    <td>{r.qty || 0}</td>
+                    <td>
+                      <button className="tbl-btn tbl-edit" onClick={() => onLoad(r.id)}>แก้ไข</button>
+                    </td>
+                    <td>
+                      <button className="tbl-btn tbl-view" onClick={() => handleViewRecord(r)}>เปิดดู</button>
+                    </td>
+                    <td>
+                      <button className="tbl-btn tbl-delete" onClick={() => confirmDelete(r.id)}>ลบ</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="empty">
