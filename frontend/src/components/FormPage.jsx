@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { compressImage } from '../utils/imageUtils';
 import SearchableSelect from './SearchableSelect';
+import ImageLightbox from './ImageLightbox';
 export default function FormPage({
   formState,
   setFormState,
@@ -9,6 +10,7 @@ export default function FormPage({
   onClear,
   onPreview
 }) {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const handleFieldChange = (field, val) => {
     setFormState(prev => ({
@@ -454,7 +456,7 @@ export default function FormPage({
           <div className="img-grid" style={{ marginBottom: '16px' }}>
             {formState.imgs.map((img, i) => (
               <div className="img-thumb" key={i}>
-                <img src={img} alt={`uploaded-${i}`} />
+                <img src={img} alt={`uploaded-${i}`} onClick={() => setLightboxSrc(img)} />
                 <button className="del" onClick={() => removeImage(i)}>✕</button>
               </div>
             ))}
@@ -796,6 +798,8 @@ export default function FormPage({
         <button className="btn-clear" onClick={onClear}>🗑 ล้างฟอร์ม</button>
         <button className="btn-save" onClick={onPreview}>👁 ดูตัวอย่าง / บันทึก</button>
       </div>
+
+      <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

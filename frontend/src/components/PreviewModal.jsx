@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import ImageLightbox from './ImageLightbox';
 
 export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSaving, mode = 'confirm', onDownloadPdf }) {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   if (!isOpen || !data) return null;
 
   const isView = mode === 'view';
@@ -162,7 +165,7 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSavin
               {data.imgs && data.imgs.length > 0 ? (
                 <div className="pv-imgs">
                   {data.imgs.map((img, i) => (
-                    <img key={i} src={img} className="pv-img" alt={`product-${i}`} />
+                    <img key={i} src={img} className="pv-img" alt={`product-${i}`} onClick={() => setLightboxSrc(img)} />
                   ))}
                 </div>
               ) : (
@@ -339,6 +342,8 @@ export default function PreviewModal({ data, isOpen, onClose, onConfirm, isSavin
           )}
         </div>
       </div>
+
+      <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }
