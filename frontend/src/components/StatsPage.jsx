@@ -5,6 +5,7 @@ export default function StatsPage({ records }) {
   const [filterCustomer, setFilterCustomer] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
   const [filterMer, setFilterMer] = useState('');
+  const [filterClothingType, setFilterClothingType] = useState('');
 
   // Each dropdown's choices narrow to whatever the *other two* filters
   // still allow (e.g. picking brand "E" leaves only the customers who
@@ -193,11 +194,27 @@ export default function StatsPage({ records }) {
       </div>
 
       <div className="form-card" style={{ padding: '20px 22px' }}>
-        <div className="sec-label" style={{ fontSize: '16px' }}>🏷️ สถิติตามประเภทเสื้อผ้า</div>
-        
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div className="sec-label" style={{ fontSize: '16px', marginBottom: 0 }}>🏷️ สถิติตามประเภทเสื้อผ้า</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--muted)' }}>ดูเฉพาะ:</span>
+            <SearchableSelect
+              className="ssel-filter"
+              allowCustom={false}
+              clearLabel="ทั้งหมด"
+              options={stats.clothingTypeStats.map(x => x.name)}
+              value={filterClothingType}
+              placeholder="ทั้งหมด"
+              onChange={setFilterClothingType}
+            />
+          </div>
+        </div>
+
         {stats.clothingTypeStats.length > 0 ? (
           <div>
-            {stats.clothingTypeStats.map((x, i) => (
+            {stats.clothingTypeStats
+              .filter(x => !filterClothingType || x.name === filterClothingType)
+              .map((x, i) => (
               <div className="type-row" key={i} style={{ padding: '14px 0' }}>
                 <div className="ic" style={{ fontSize: '28px' }}>👚</div>
                 <div className="inf">
