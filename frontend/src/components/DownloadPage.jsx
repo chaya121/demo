@@ -449,7 +449,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
                     <td>{r.customer || '-'}</td>
                     <td>{r.clothingType || '-'}</td>
                     <td>{r.model || '-'}</td>
-                    <td>{r.qty || 0}</td>
+                    <td>{Number(r.qty || 0).toLocaleString()}</td>
                     <td>
                       <button className="tbl-btn tbl-edit" onClick={() => onLoad(r.id)}>แก้ไข</button>
                     </td>

@@ -371,7 +371,7 @@ export default function App() {
               <p style={{ color: 'var(--muted)' }}>กำลังโหลดข้อมูลจากเซิร์ฟเวอร์...</p>
             </div>
           ) : (
-          <div className="wrap">
+          <div className={`wrap${activeTab === 'download' ? ' wrap-wide' : ''}`}>
             {activeTab === 'form' && (
               <FormPage
                 formState={formState}

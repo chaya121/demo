@@ -202,6 +202,13 @@ body {
   padding: 24px 16px 100px;
 }
 
+/* Wider container for the records table (download page) so each row's data
+   stays on one line instead of wrapping inside the app's normal narrow
+   (mobile-first) column width. */
+.wrap-wide {
+  max-width: 1400px;
+}
+
 .page {
   display: none;
 }
