@@ -40,8 +40,10 @@ if (databaseType === 'postgresql' && databaseUrl) {
     CREATE TABLE IF NOT EXISTS records (
       id BIGINT PRIMARY KEY,
       data JSONB NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW()
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
     );
+    ALTER TABLE records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
     CREATE TABLE IF NOT EXISTS master (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       data JSONB NOT NULL
@@ -88,9 +90,15 @@ export async function initDb() {
       CREATE TABLE IF NOT EXISTS records (
         id INTEGER PRIMARY KEY,
         data TEXT NOT NULL,
-        created_at TEXT DEFAULT (datetime('now'))
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
       )
     `);
+    try {
+      db.run(`ALTER TABLE records ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))`);
+    } catch (e) {
+      // Column already exists on a DB created before this migration — fine.
+    }
 
     db.run(`
       CREATE TABLE IF NOT EXISTS master (
@@ -132,23 +140,26 @@ function stripImages(recordData) {
 
 export async function getAllRecords() {
   if (databaseType === 'postgresql' && pgPool) {
-    const result = await pgPool.query('SELECT id, data, created_at FROM records ORDER BY id DESC');
+    const result = await pgPool.query('SELECT id, data, created_at, updated_at FROM records ORDER BY id DESC');
     return result.rows.map(row => ({
       ...stripImages(row.data),
       // pg returns BIGINT columns as strings to avoid precision loss; cast
       // back to Number so `id` is always the same type as a freshly-created
       // record's id (Date.now()), regardless of where the record came from.
       id: Number(row.id),
-      created_at: row.created_at
+      created_at: row.created_at,
+      updated_at: row.updated_at
     }));
   } else {
-    const stmt = db.prepare('SELECT id, data, created_at FROM records ORDER BY id DESC');
+    const stmt = db.prepare('SELECT id, data, created_at, updated_at FROM records ORDER BY id DESC');
     const rows = [];
     while (stmt.step()) {
       const row = stmt.getAsObject();
       rows.push({
         ...stripImages(JSON.parse(row.data)),
         id: Number(row.id),
+        created_at: row.created_at,
+        updated_at: row.updated_at
       });
     }
     stmt.free();
@@ -158,12 +169,12 @@ export async function getAllRecords() {
 
 export async function getRecordById(id) {
   if (databaseType === 'postgresql' && pgPool) {
-    const result = await pgPool.query('SELECT id, data, created_at FROM records WHERE id = $1', [id]);
+    const result = await pgPool.query('SELECT id, data, created_at, updated_at FROM records WHERE id = $1', [id]);
     if (result.rows.length === 0) return null;
     const row = result.rows[0];
-    return { ...row.data, id: Number(row.id), created_at: row.created_at };
+    return { ...row.data, id: Number(row.id), created_at: row.created_at, updated_at: row.updated_at };
   } else {
-    const stmt = db.prepare('SELECT id, data FROM records WHERE id = ?');
+    const stmt = db.prepare('SELECT id, data, updated_at FROM records WHERE id = ?');
     stmt.bind([id]);
     if (!stmt.step()) {
       stmt.free();
@@ -171,7 +182,7 @@ export async function getRecordById(id) {
     }
     const row = stmt.getAsObject();
     stmt.free();
-    return { ...JSON.parse(row.data), id: Number(row.id) };
+    return { ...JSON.parse(row.data), id: Number(row.id), updated_at: row.updated_at };
   }
 }
 
@@ -245,12 +256,12 @@ export async function createRecord(record) {
       const job_no = await generateJobNumberPg(client, record);
       const data = { ...record, id, job_no };
 
-      await client.query(
-        'INSERT INTO records (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = $2',
+      const inserted = await client.query(
+        'INSERT INTO records (id, data) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET data = $2 RETURNING created_at, updated_at',
         [id, data]
       );
       await client.query('COMMIT');
-      return data;
+      return { ...data, created_at: inserted.rows[0].created_at, updated_at: inserted.rows[0].updated_at };
     } catch (e) {
       await client.query('ROLLBACK');
       throw e;
@@ -264,7 +275,12 @@ export async function createRecord(record) {
     const jsonData = JSON.stringify(data);
     db.run('INSERT INTO records (id, data) VALUES (?, ?)', [id, jsonData]);
     persist();
-    return data;
+    const stmt = db.prepare('SELECT created_at, updated_at FROM records WHERE id = ?');
+    stmt.bind([id]);
+    stmt.step();
+    const row = stmt.getAsObject();
+    stmt.free();
+    return { ...data, created_at: row.created_at, updated_at: row.updated_at };
   }
 }
 
@@ -323,22 +339,28 @@ export async function updateRecord(id, record) {
   
   if (databaseType === 'postgresql' && pgPool) {
     const result = await pgPool.query(
-      'UPDATE records SET data = $1 WHERE id = $2 RETURNING data',
+      'UPDATE records SET data = $1, updated_at = NOW() WHERE id = $2 RETURNING data, created_at, updated_at',
       [data, id]
     );
     if (result.rows.length === 0) {
       throw new Error('Record not found');
     }
-    return result.rows[0].data;
+    const row = result.rows[0];
+    return { ...row.data, created_at: row.created_at, updated_at: row.updated_at };
   } else {
     const jsonData = JSON.stringify(data);
-    db.run('UPDATE records SET data = ? WHERE id = ?', [jsonData, id]);
+    db.run(`UPDATE records SET data = ?, updated_at = datetime('now') WHERE id = ?`, [jsonData, id]);
     const changes = db.getRowsModified();
     if (changes === 0) {
       throw new Error('Record not found');
     }
     persist();
-    return data;
+    const stmt = db.prepare('SELECT created_at, updated_at FROM records WHERE id = ?');
+    stmt.bind([id]);
+    stmt.step();
+    const row = stmt.getAsObject();
+    stmt.free();
+    return { ...data, created_at: row.created_at, updated_at: row.updated_at };
   }
 }
 

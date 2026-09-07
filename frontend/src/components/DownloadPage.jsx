@@ -24,7 +24,7 @@ function formatTableDate(dateStr) {
 
 const withDetail = (prefix, err) => (err?.message ? `${prefix}: ${err.message}` : prefix);
 
-export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
+export default function DownloadPage({ records, onDelete, onLoad, showToast, flashingIds, seenMap, markSeen }) {
   const [filterCustomer, setFilterCustomer] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -117,6 +117,7 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
       showToast(withDetail('โหลดรูปภาพไม่สำเร็จ ข้อมูลอื่นยังดูได้ปกติ', err), 'err');
     }
     setViewingRecord({ ...full, dispDate: full.dispDate || formatDispDate(full.date) });
+    markSeen?.(record.id, full.updated_at);
   };
 
   const handleExcelExport = async () => {
@@ -441,9 +442,19 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast }) {
                 const actualWageNum = parseFloat(r.actual?.wage);
                 const isOverbudget = !isNaN(estWageNum) && !isNaN(actualWageNum) && actualWageNum > estWageNum;
 
+                const isFlashing = flashingIds?.has(r.id);
+                const isUnseen = seenMap && (seenMap[r.id] === undefined || seenMap[r.id] !== r.updated_at);
+
                 return (
-                  <tr key={r.id || i} style={isOverbudget ? { backgroundColor: '#FFBCBC' } : {}}>
-                    <td>{formatTableDate(r.date)}</td>
+                  <tr
+                    key={r.id || i}
+                    className={isFlashing ? 'row-flash' : ''}
+                    style={isOverbudget ? { backgroundColor: '#FFBCBC' } : {}}
+                  >
+                    <td>
+                      {isUnseen && <span className="new-dot" title="ยังไม่เคยเปิดดู">●</span>}
+                      {formatTableDate(r.date)}
+                    </td>
                     <td>{merStr}</td>
                     <td>{r.brand || '-'}</td>
                     <td>{r.customer || '-'}</td>

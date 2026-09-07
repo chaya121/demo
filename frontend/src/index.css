@@ -1317,6 +1317,27 @@ body {
   background: var(--tan-lt);
 }
 
+/* Pulses briefly when a row was just created or updated (by anyone —
+   picked up either from this browser's own save or the background poll
+   noticing someone else's). */
+@keyframes row-flash-anim {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: #fff3b0; }
+}
+
+.row-flash {
+  animation: row-flash-anim 0.7s ease-in-out 3;
+}
+
+/* Persistent "unseen" marker — stays (no animation) until the record is
+   actually opened, so a change missed during its brief flash isn't lost. */
+.new-dot {
+  color: #e74c3c;
+  font-size: 9px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
 .tbl-btn {
   border: none;
   border-radius: var(--r-sm);

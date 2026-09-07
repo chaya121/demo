@@ -106,6 +106,29 @@ const createEmptyFormState = () => ({
   }
 });
 
+// "Unseen" records (badge/dot in the history table until opened) are tracked
+// per-browser in localStorage, keyed by id -> the `updated_at` we last saw
+// for it. There's no login system, so "per-browser" is the closest thing to
+// "per-person" available here.
+const SEEN_KEY = 'acSeenRecords';
+
+function loadSeenMap() {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSeenMap(map) {
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify(map));
+  } catch {
+    // Private browsing / storage full — the badge just won't persist across reloads.
+  }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('form');
   const [masterLists, setMasterLists] = useState(DEFAULT_MASTER);
@@ -123,6 +146,38 @@ export default function App() {
   // still read a stale isSaving=false before React re-renders — the ref
   // mutates synchronously, so the second call sees it immediately.
   const isSavingRef = useRef(false);
+  // ids currently mid-"flash" animation in the history table (someone just
+  // created/updated that record — see the polling effect below).
+  const [flashingIds, setFlashingIds] = useState(() => new Set());
+  // Tracks the last `updated_at` we've seen per record id, so a poll tick
+  // can tell "unchanged" apart from "someone just saved this."
+  const lastUpdatedRef = useRef({});
+
+  const triggerFlash = (id) => {
+    setFlashingIds(prev => new Set(prev).add(id));
+    setTimeout(() => {
+      setFlashingIds(prev => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 2500);
+  };
+
+  // Persistent "new/unseen" badge — unlike the transient flash above, this
+  // stays on a record until it's actually opened (view or edit), so a change
+  // that happens while nobody's looking still gets noticed later.
+  const [seenMap, setSeenMap] = useState(loadSeenMap);
+
+  const markSeen = (id, updatedAt) => {
+    setSeenMap(prev => {
+      if (prev[id] === updatedAt) return prev;
+      const next = { ...prev, [id]: updatedAt };
+      saveSeenMap(next);
+      return next;
+    });
+  };
 
   const showToast = (message, type = 'success') => {
     const id = Date.now();
@@ -147,6 +202,21 @@ export default function App() {
         if (cancelled) return;
 
         setRecords(recordsData);
+        recordsData.forEach(r => { lastUpdatedRef.current[r.id] = r.updated_at; });
+
+        // First time this browser has ever loaded the app (no seen-map saved
+        // yet): treat everything that already exists as "seen" so the whole
+        // history doesn't show up with "new" badges on day one — only
+        // changes from here on should count as unseen.
+        let hasSeenKey = true;
+        try { hasSeenKey = localStorage.getItem(SEEN_KEY) !== null; } catch { /* ignore */ }
+        if (!hasSeenKey) {
+          const baseline = {};
+          recordsData.forEach(r => { baseline[r.id] = r.updated_at; });
+          saveSeenMap(baseline);
+          setSeenMap(baseline);
+        }
+
         setMasterLists(masterData || DEFAULT_MASTER);
 
         if (!masterData) {
@@ -165,6 +235,34 @@ export default function App() {
     loadData();
     return () => { cancelled = true; };
   }, []);
+
+  // Live-ish updates: poll the records list in the background so that if
+  // someone else (or this same user, from another tab/device) creates or
+  // edits a job, it shows up — and flashes — without needing a manual
+  // refresh. The very first load above only seeds `lastUpdatedRef` and
+  // never flashes; only changes noticed *after* that count.
+  useEffect(() => {
+    if (isLoading) return;
+    const interval = setInterval(async () => {
+      try {
+        const fresh = await api.getRecords();
+        const changedIds = [];
+        fresh.forEach(r => {
+          const prevUpdatedAt = lastUpdatedRef.current[r.id];
+          if (prevUpdatedAt === undefined || prevUpdatedAt !== r.updated_at) {
+            changedIds.push(r.id);
+          }
+          lastUpdatedRef.current[r.id] = r.updated_at;
+        });
+        setRecords(fresh);
+        changedIds.forEach(triggerFlash);
+      } catch (err) {
+        // A background poll failing shouldn't interrupt the user with a toast.
+        console.error('Background records poll failed', err);
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleUpdateMaster = async (type, newList) => {
     const updated = {
@@ -232,6 +330,9 @@ export default function App() {
         };
         const saved = await api.updateRecord(editingId, updatedRecord);
         setRecords(prev => prev.map(r => r.id === editingId ? withHasImages(saved) : r));
+        lastUpdatedRef.current[saved.id] = saved.updated_at;
+        triggerFlash(saved.id);
+        markSeen(saved.id, saved.updated_at);
         setEditingId(null);
         showToast(`แก้ไขข้อมูลสำเร็จ: ${saved.job_no || ''}`);
       } else {
@@ -242,6 +343,9 @@ export default function App() {
         };
         const saved = await api.createRecord(newRecord);
         setRecords(prev => [withHasImages(saved), ...prev]);
+        lastUpdatedRef.current[saved.id] = saved.updated_at;
+        triggerFlash(saved.id);
+        markSeen(saved.id, saved.updated_at);
         showToast(`บันทึกสำเร็จ: เลขที่ ${saved.job_no || ''}`);
       }
       setIsPreviewOpen(false);
@@ -279,6 +383,7 @@ export default function App() {
     try {
       const full = await api.getRecord(id);
       if (full) r = full;
+      markSeen(id, r.updated_at);
     } catch (err) {
       console.error(err);
       showToast(withDetail('โหลดรูปภาพไม่สำเร็จ ข้อมูลอื่นยังโหลดได้ปกติ', err), 'err');
@@ -388,6 +493,9 @@ export default function App() {
                 onDelete={handleDeleteRecord}
                 onLoad={handleLoadRecord}
                 showToast={showToast}
+                flashingIds={flashingIds}
+                seenMap={seenMap}
+                markSeen={markSeen}
               />
             )}
             {activeTab === 'stats' && (
