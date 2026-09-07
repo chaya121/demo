@@ -69,14 +69,11 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast, fla
         const matchTo = !filterDateTo || shipDate <= filterDateTo;
         return matchCustomer && matchBrand && matchYear && matchFrom && matchTo;
       })
-      .sort((a, b) => {
-        const da = a.shipDate || '';
-        const db = b.shipDate || '';
-        if (!da && !db) return 0;
-        if (!da) return 1;
-        if (!db) return -1;
-        return da < db ? -1 : da > db ? 1 : 0;
-      });
+      // `id` is a Date.now() timestamp assigned at creation, so sorting by it
+      // descending is exactly "newest created first" — no date-string
+      // parsing needed, and it's unaffected by the job's editable "วันที่"/
+      // shipDate fields.
+      .sort((a, b) => b.id - a.id);
   }, [records, filterCustomer, filterBrand, filterYear, filterDateFrom, filterDateTo]);
   const handlePdfDownload = async (record) => {
     // The list omits `imgs` to keep the initial load light; fetch the full
