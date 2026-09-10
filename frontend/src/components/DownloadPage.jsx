@@ -300,6 +300,18 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast, fla
     e.target.value = '';
   };
 
+  // Shared per-row derived values — used by both the desktop table and the
+  // mobile card list below so the two views can never disagree.
+  const getRowMeta = (r) => {
+    const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
+    const estWageNum = parseFloat(r.estWage);
+    const actualWageNum = parseFloat(r.actual?.wage);
+    const isOverbudget = !isNaN(estWageNum) && !isNaN(actualWageNum) && actualWageNum > estWageNum;
+    const isFlashing = flashingIds?.has(r.id);
+    const isUnseen = seenMap && (seenMap[r.id] === undefined || seenMap[r.id] !== r.updated_at);
+    return { merStr, isOverbudget, isFlashing, isUnseen };
+  };
+
   return (
     <div className="page active">
       <div className="form-card" style={{ padding: '22px', textAlign: 'center' }}>
@@ -416,63 +428,94 @@ export default function DownloadPage({ records, onDelete, onLoad, showToast, fla
       </div>
 
       {filteredRecords.length > 0 ? (
-        <div className="rec-table-wrap">
-          <table className="rec-table">
-            <thead>
-              <tr>
-                <th>วันที่</th>
-                <th>เมอร์</th>
-                <th>ยี่ห้อ</th>
-                <th>ลูกค้า</th>
-                <th>ประเภท</th>
-                <th>ชื่อรุ่น</th>
-                <th>จำนวนผลิต</th>
-                <th></th>
-                <th></th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.map((r, i) => {
-                const merStr = Array.isArray(r.mer) ? r.mer.join(', ') : (r.mer || r.merText || '-');
-                const estWageNum = parseFloat(r.estWage);
-                const actualWageNum = parseFloat(r.actual?.wage);
-                const isOverbudget = !isNaN(estWageNum) && !isNaN(actualWageNum) && actualWageNum > estWageNum;
+        <>
+          {/* Desktop/tablet: full table, one line per record (see .rec-table CSS). */}
+          <div className="rec-table-wrap">
+            <table className="rec-table">
+              <thead>
+                <tr>
+                  <th>วันที่</th>
+                  <th>เมอร์</th>
+                  <th>ยี่ห้อ</th>
+                  <th>ลูกค้า</th>
+                  <th>ประเภท</th>
+                  <th>ชื่อรุ่น</th>
+                  <th>จำนวนผลิต</th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecords.map((r, i) => {
+                  const { merStr, isOverbudget, isFlashing, isUnseen } = getRowMeta(r);
 
-                const isFlashing = flashingIds?.has(r.id);
-                const isUnseen = seenMap && (seenMap[r.id] === undefined || seenMap[r.id] !== r.updated_at);
+                  return (
+                    <tr
+                      key={r.id || i}
+                      className={isFlashing ? 'row-flash' : ''}
+                      style={isOverbudget ? { backgroundColor: '#FFBCBC' } : {}}
+                    >
+                      <td>
+                        {isUnseen && <span className="new-dot" title="ยังไม่เคยเปิดดู">●</span>}
+                        {formatTableDate(r.date)}
+                      </td>
+                      <td>{merStr}</td>
+                      <td>{r.brand || '-'}</td>
+                      <td>{r.customer || '-'}</td>
+                      <td>{r.clothingType || '-'}</td>
+                      <td>{r.model || '-'}</td>
+                      <td>{Number(r.qty || 0).toLocaleString()}</td>
+                      <td>
+                        <button className="tbl-btn tbl-edit" onClick={() => onLoad(r.id)}>แก้ไข</button>
+                      </td>
+                      <td>
+                        <button className="tbl-btn tbl-view" onClick={() => handleViewRecord(r)}>เปิดดู</button>
+                      </td>
+                      <td>
+                        <button className="tbl-btn tbl-delete" onClick={() => confirmDelete(r.id)}>ลบ</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-                return (
-                  <tr
-                    key={r.id || i}
-                    className={isFlashing ? 'row-flash' : ''}
-                    style={isOverbudget ? { backgroundColor: '#FFBCBC' } : {}}
-                  >
-                    <td>
+          {/* Mobile: stacked cards instead of the cramped 10-column table —
+              same data, laid out so it's readable without squinting or
+              words breaking mid-syllable. */}
+          <div className="rec-cards">
+            {filteredRecords.map((r, i) => {
+              const { merStr, isOverbudget, isFlashing, isUnseen } = getRowMeta(r);
+
+              return (
+                <div
+                  key={r.id || i}
+                  className={`rec-card2 ${isFlashing ? 'row-flash' : ''}`}
+                  style={isOverbudget ? { backgroundColor: '#FFBCBC' } : {}}
+                >
+                  <div className="rc-top">
+                    <span className="rc-date">
                       {isUnseen && <span className="new-dot" title="ยังไม่เคยเปิดดู">●</span>}
                       {formatTableDate(r.date)}
-                    </td>
-                    <td>{merStr}</td>
-                    <td>{r.brand || '-'}</td>
-                    <td>{r.customer || '-'}</td>
-                    <td>{r.clothingType || '-'}</td>
-                    <td>{r.model || '-'}</td>
-                    <td>{Number(r.qty || 0).toLocaleString()}</td>
-                    <td>
-                      <button className="tbl-btn tbl-edit" onClick={() => onLoad(r.id)}>แก้ไข</button>
-                    </td>
-                    <td>
-                      <button className="tbl-btn tbl-view" onClick={() => handleViewRecord(r)}>เปิดดู</button>
-                    </td>
-                    <td>
-                      <button className="tbl-btn tbl-delete" onClick={() => confirmDelete(r.id)}>ลบ</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </span>
+                    <span className="rc-mer">{merStr}</span>
+                  </div>
+                  <div className="rc-main">{r.customer || '-'} · {r.brand || '-'}</div>
+                  <div className="rc-sub">
+                    {r.clothingType || '-'} · {r.model || '-'} · {Number(r.qty || 0).toLocaleString()} ตัว
+                  </div>
+                  <div className="rc-actions">
+                    <button className="tbl-btn tbl-edit" onClick={() => onLoad(r.id)}>แก้ไข</button>
+                    <button className="tbl-btn tbl-view" onClick={() => handleViewRecord(r)}>เปิดดู</button>
+                    <button className="tbl-btn tbl-delete" onClick={() => confirmDelete(r.id)}>ลบ</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <div className="empty">
           <div className="ei">📋</div>

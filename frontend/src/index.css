@@ -1338,6 +1338,77 @@ body {
   vertical-align: middle;
 }
 
+/* ── Records mobile card list (replaces the table below 768px — a
+   10-column table has no room to breathe on a phone, and forcing it into
+   that width just breaks words mid-syllable) ── */
+.rec-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .rec-table-wrap {
+    display: none;
+  }
+
+  .rec-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.rec-card2 {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+}
+
+.rc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.rc-date {
+  font-weight: 600;
+}
+
+.rc-mer {
+  background: var(--tan-lt);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.rc-main {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.rc-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.rc-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rc-actions .tbl-btn {
+  flex: 1;
+  padding: 10px 4px;
+  font-size: 13px;
+}
+
 .tbl-btn {
   border: none;
   border-radius: var(--r-sm);
