@@ -473,11 +473,16 @@ export default function App() {
   return (
     <div>
       {showHome ? (
-        <HomePage onStart={() => { setActiveTab('form'); setShowHome(false); }} />
+        <HomePage
+          onStart={() => { setActiveTab('form'); setShowHome(false); }}
+          onViewHistory={() => { setActiveTab('download'); setShowHome(false); }}
+        />
       ) : (
         <>
-          <Header onLogoClick={() => setShowHome(true)} />
-          <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+          <div className="app-topbar">
+            <Header onLogoClick={() => setShowHome(true)} />
+            <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+          </div>
 
           {isLoading ? (
             <div className="wrap" style={{ textAlign: 'center', padding: '60px 20px' }}>

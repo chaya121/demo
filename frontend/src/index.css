@@ -41,6 +41,16 @@ body {
 }
 
 /* ── Header ── */
+/* Header + tab bar stick together as one unit, positioned as a whole rather
+   than each pinned at a hardcoded pixel offset — the header can wrap onto a
+   second line on narrow/portrait phones, and a fixed `top` on the tab bar
+   below it would then overlap the header instead of sitting right under it. */
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 300;
+}
+
 .app-header {
   background: linear-gradient(135deg, #1c2833 0%, #2c3e50 100%);
   color: #fff;
@@ -48,9 +58,6 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  position: sticky;
-  top: 0;
-  z-index: 300;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
@@ -151,6 +158,27 @@ body {
   transform: translateY(0);
 }
 
+.home-secondary-btn {
+  width: 100%;
+  padding: 14px 24px;
+  margin-top: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--r);
+  background: transparent;
+  color: #fff;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 48px;
+}
+
+.home-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 /* ── Tabs ── */
 .tab-bar {
   display: flex;
@@ -158,9 +186,6 @@ body {
   border-bottom: 2px solid var(--border);
   overflow-x: auto;
   scrollbar-width: none;
-  position: sticky;
-  top: 68px;
-  z-index: 200;
 }
 
 .tab-bar::-webkit-scrollbar {

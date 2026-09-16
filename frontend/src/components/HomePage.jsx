@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function HomePage({ onStart }) {
+export default function HomePage({ onStart, onViewHistory }) {
   return (
     <div className="home-page">
       <div className="home-content">
@@ -9,6 +9,9 @@ export default function HomePage({ onStart }) {
         <p className="home-subtitle">บันทึก ติดตาม และจัดการขั้นตอนการผลิตทุกใบงานได้ในที่เดียว</p>
         <button className="home-cta-btn" onClick={onStart}>
           📋 เริ่มกรอกใบขั้นตอนการผลิต
+        </button>
+        <button className="home-secondary-btn" onClick={onViewHistory}>
+          📥 ดูประวัติ/PDF
         </button>
       </div>
     </div>
