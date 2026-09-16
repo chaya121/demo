@@ -49,6 +49,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 300;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: linear-gradient(135deg, #1c2833 0%, #2c3e50 100%);
 }
 
 .app-header {
