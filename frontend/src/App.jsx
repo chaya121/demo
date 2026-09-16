@@ -351,6 +351,11 @@ export default function App() {
       setIsPreviewOpen(false);
       setFormState(createEmptyFormState());
       setActiveTab('download');
+      // Switching tabs is just a state change, not real navigation, so the
+      // page keeps whatever scroll position it had from filling out the
+      // (often long) form — without this it can land the history list
+      // scrolled halfway down instead of showing the saved record at top.
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
       showToast(withDetail('บันทึกไม่สำเร็จ', err), 'err');
@@ -458,6 +463,10 @@ export default function App() {
     });
 
     setActiveTab('form');
+    // Same reasoning as the post-save scrollTo below: switching tabs doesn't
+    // reset scroll on its own, so opening a record for edit while scrolled
+    // deep in the history list would otherwise land on the form mid-way down.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast('โหลดข้อมูลเรียบร้อย');
   };
 
